@@ -5,7 +5,12 @@ import { theoryResources } from "../public/kehlmann-reader/data.js";
 import { kehlmannReaderApiRouter } from "./routes/kehlmann-reader-api.mjs";
 import { hasOpenAccess, isSafeExamBrowserRequest, parseCookies } from "./services/access.mjs";
 import { getEntriesForLesson, getLessonSetById, getLessonSetsWithCounts } from "./services/kehlmann-reader-progress.mjs";
-import { createOrResumeStudent, updateReaderStore } from "./services/kehlmann-reader-store.mjs";
+import {
+  buildReaderBootstrap,
+  createOrResumeStudent,
+  readReaderStore,
+  updateReaderStore
+} from "./services/kehlmann-reader-store.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -595,6 +600,11 @@ function clearStudentCookies(response) {
   response.append("Set-Cookie", `${CLASS_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`);
 }
 
+function clearStudentSessionOnly(response) {
+  response.append("Set-Cookie", `${STUDENT_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`);
+  response.append("Set-Cookie", `${CLASS_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`);
+}
+
 function setStudentCookies(response, classroom, student, includeOpenAccess = false) {
   if (includeOpenAccess) {
     response.append("Set-Cookie", `${OPEN_COOKIE}=1; HttpOnly; Path=/; Max-Age=28800; SameSite=Lax`);
@@ -612,6 +622,16 @@ function lessonRedirect(mode, lessonId) {
     return `/${mode}`;
   }
   return `/${mode}/lesson/${lessonId}`;
+}
+
+async function hasValidStudentSession(request) {
+  const studentId = getCookies(request)[STUDENT_COOKIE];
+  if (!studentId) {
+    return false;
+  }
+
+  const store = await readReaderStore();
+  return Boolean(buildReaderBootstrap(store, studentId));
 }
 
 export function createApp() {
@@ -717,25 +737,44 @@ export function createApp() {
     response.redirect("/");
   });
 
-  app.get("/open", (request, response) => {
+  app.get("/open", async (request, response) => {
     if (!hasOpenAccess(request, OPEN_COOKIE) || !hasStudentSession(request)) {
       response.send(renderStudentAccessPage({ mode: "open" }));
+      return;
+    }
+
+    if (!(await hasValidStudentSession(request))) {
+      clearStudentSessionOnly(response);
+      response.send(renderStudentAccessPage({
+        mode: "open",
+        errorText: "Die frühere Reader-Sitzung war nicht mehr gültig. Bitte melde dich mit Klassen-Code, Namen und Unterrichtspasswort erneut an."
+      }));
       return;
     }
 
     response.send(renderReaderPage("open"));
   });
 
-  app.get("/open/lesson/:lessonId", (request, response) => {
+  app.get("/open/lesson/:lessonId", async (request, response) => {
     if (!hasOpenAccess(request, OPEN_COOKIE) || !hasStudentSession(request)) {
       response.send(renderStudentAccessPage({ mode: "open", lessonId: request.params.lessonId }));
+      return;
+    }
+
+    if (!(await hasValidStudentSession(request))) {
+      clearStudentSessionOnly(response);
+      response.send(renderStudentAccessPage({
+        mode: "open",
+        lessonId: request.params.lessonId,
+        errorText: "Die frühere Reader-Sitzung war nicht mehr gültig. Bitte melde dich mit Klassen-Code, Namen und Unterrichtspasswort erneut an."
+      }));
       return;
     }
 
     response.send(renderReaderPage("open", request.params.lessonId));
   });
 
-  app.get("/seb", (request, response) => {
+  app.get("/seb", async (request, response) => {
     if (!isSafeExamBrowserRequest(request, SEB_CONFIG_KEY_HASH)) {
       response.status(403).send(renderSebBlockedPage());
       return;
@@ -746,10 +785,19 @@ export function createApp() {
       return;
     }
 
+    if (!(await hasValidStudentSession(request))) {
+      clearStudentSessionOnly(response);
+      response.send(renderStudentAccessPage({
+        mode: "seb",
+        errorText: "Die frühere Reader-Sitzung war nicht mehr gültig. Bitte melde dich mit Klassen-Code und Namen erneut an."
+      }));
+      return;
+    }
+
     response.send(renderReaderPage("seb"));
   });
 
-  app.get("/seb/lesson/:lessonId", (request, response) => {
+  app.get("/seb/lesson/:lessonId", async (request, response) => {
     if (!isSafeExamBrowserRequest(request, SEB_CONFIG_KEY_HASH)) {
       response.status(403).send(renderSebBlockedPage());
       return;
@@ -757,6 +805,16 @@ export function createApp() {
 
     if (!hasStudentSession(request)) {
       response.send(renderStudentAccessPage({ mode: "seb", lessonId: request.params.lessonId }));
+      return;
+    }
+
+    if (!(await hasValidStudentSession(request))) {
+      clearStudentSessionOnly(response);
+      response.send(renderStudentAccessPage({
+        mode: "seb",
+        lessonId: request.params.lessonId,
+        errorText: "Die frühere Reader-Sitzung war nicht mehr gültig. Bitte melde dich mit Klassen-Code und Namen erneut an."
+      }));
       return;
     }
 

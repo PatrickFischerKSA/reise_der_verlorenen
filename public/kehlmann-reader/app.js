@@ -57,6 +57,10 @@ function escapeHtml(value) {
 
 async function fetchBootstrap() {
   const response = await fetch("/reader-api/bootstrap", { credentials: "same-origin" });
+  if (response.status === 401) {
+    window.location.replace(window.location.pathname + window.location.search);
+    return new Promise(() => {});
+  }
   if (!response.ok) {
     throw new Error("Die Reader-Sitzung konnte nicht geladen werden.");
   }
