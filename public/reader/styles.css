@@ -279,7 +279,8 @@ button {
 .notebook,
 .pdf-panel,
 .theory-panel,
-.review-panel {
+.review-panel,
+.seb-feedback-panel {
   display: grid;
   gap: 16px;
 }
@@ -289,6 +290,8 @@ button {
 .theory-summary,
 .video-card,
 .criterion-card,
+.seb-profile-card,
+.seb-feedback-card,
 .peer-entry-card,
 .empty-box,
 .notice-box {
@@ -330,7 +333,9 @@ button {
 }
 
 .review-layout,
-.review-meta-grid {
+.review-meta-grid,
+.seb-profile-grid,
+.seb-feedback-columns {
   display: grid;
   gap: 18px;
 }
@@ -340,6 +345,11 @@ button {
 }
 
 .review-meta-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.seb-profile-grid,
+.seb-feedback-columns {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -359,6 +369,19 @@ button {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.seb-feedback-actions,
+.seb-feedback-meta,
+.seb-profile-head {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.seb-profile-head {
+  justify-content: space-between;
 }
 
 .inline-status {
@@ -427,6 +450,32 @@ textarea {
   padding-left: 18px;
 }
 
+.seb-feedback-summary {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(49, 67, 53, 0.08), rgba(180, 92, 57, 0.08));
+  border: 1px solid rgba(49, 67, 53, 0.12);
+}
+
+.seb-profile-card {
+  align-content: start;
+}
+
+.seb-feedback-card.is-positive {
+  background: rgba(49, 67, 53, 0.08);
+}
+
+.seb-feedback-card.is-caution {
+  background: rgba(180, 92, 57, 0.1);
+}
+
+.seb-feedback-steps {
+  margin: 0;
+  padding-left: 20px;
+}
+
 .progress-box {
   display: grid;
   gap: 10px;
@@ -486,6 +535,8 @@ textarea {
   .status-strip,
   .review-layout,
   .review-meta-grid,
+  .seb-profile-grid,
+  .seb-feedback-columns,
   .criteria-grid {
     grid-template-columns: 1fr;
   }

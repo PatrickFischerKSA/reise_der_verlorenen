@@ -19,6 +19,10 @@ const defaultState = {
   student: null,
   progress: null,
   peerReview: null,
+  sebFeedback: null,
+  sebFeedbackStatus: "idle",
+  sebFeedbackError: "",
+  sebFeedbackKey: "",
   selectedReviewId: null,
   lessonId: config.forcedLessonId || lessonSets[0].id,
   moduleId: readerModules[0].id,
@@ -32,6 +36,8 @@ const defaultState = {
 
 const state = structuredClone(defaultState);
 let saveTimer = null;
+let feedbackTimer = null;
+let sebFeedbackRequestId = 0;
 
 function escapeHtml(value) {
   return String(value || "")
@@ -46,6 +52,24 @@ async function fetchBootstrap() {
   if (!response.ok) {
     throw new Error("Die Reader-Sitzung konnte nicht geladen werden.");
   }
+  return response.json();
+}
+
+async function fetchSebFeedback(payload) {
+  const response = await fetch("/reader-api/seb-feedback", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorPayload = await response.json().catch(() => ({}));
+    throw new Error(errorPayload.error || "Das SEB-Fachfeedback konnte nicht geladen werden.");
+  }
+
   return response.json();
 }
 
@@ -70,6 +94,72 @@ function applyBootstrap(payload) {
     }
   } else {
     state.selectedReviewId = null;
+  }
+}
+
+function sebFeedbackPayload() {
+  const entry = currentEntry();
+  return {
+    lessonId: state.lessonId,
+    moduleId: state.moduleId,
+    entryId: state.entryId,
+    theoryId: state.theoryId,
+    note: noteForEntry(entry?.id || state.entryId)
+  };
+}
+
+function sebFeedbackKeyFor(payload) {
+  return [
+    payload.lessonId,
+    payload.moduleId,
+    payload.entryId,
+    payload.theoryId,
+    payload.note?.observation || "",
+    payload.note?.evidence || "",
+    payload.note?.interpretation || "",
+    payload.note?.theory || "",
+    payload.note?.revision || ""
+  ].join("::");
+}
+
+async function requestSebFeedback({ showLoading = false, force = false } = {}) {
+  if (mode !== "seb" || !state.ready) {
+    return;
+  }
+
+  ensureSelection();
+  const payload = sebFeedbackPayload();
+  const feedbackKey = sebFeedbackKeyFor(payload);
+  if (!force && state.sebFeedbackStatus === "ready" && state.sebFeedbackKey === feedbackKey) {
+    return;
+  }
+
+  const requestId = ++sebFeedbackRequestId;
+  state.sebFeedbackStatus = showLoading || !state.sebFeedback ? "loading" : "refreshing";
+  state.sebFeedbackError = "";
+  if (showLoading) {
+    render();
+  }
+
+  try {
+    const feedback = await fetchSebFeedback(payload);
+    if (requestId !== sebFeedbackRequestId) {
+      return;
+    }
+
+    state.sebFeedback = feedback;
+    state.sebFeedbackKey = feedbackKey;
+    state.sebFeedbackStatus = "ready";
+    state.sebFeedbackError = "";
+    render();
+  } catch (error) {
+    if (requestId !== sebFeedbackRequestId) {
+      return;
+    }
+
+    state.sebFeedbackStatus = "error";
+    state.sebFeedbackError = error.message;
+    render();
   }
 }
 
@@ -103,6 +193,9 @@ async function saveProgress() {
     applyBootstrap(payload);
     state.saveStatus = "saved";
     render();
+    if (mode === "seb") {
+      requestSebFeedback();
+    }
   } catch (error) {
     state.saveStatus = "error";
     state.error = error.message;
@@ -115,6 +208,17 @@ function queueSave() {
   saveTimer = window.setTimeout(() => {
     saveProgress();
   }, 500);
+}
+
+function queueSebFeedback() {
+  if (mode !== "seb") {
+    return;
+  }
+
+  clearTimeout(feedbackTimer);
+  feedbackTimer = window.setTimeout(() => {
+    requestSebFeedback();
+  }, 700);
 }
 
 function availableLessons() {
@@ -402,18 +506,133 @@ function renderNotebook(entry) {
         </label>
       </form>
 
-      <div class="feedback-box">
-        <h3>Arbeitsfeedback</h3>
-        <div class="feedback-columns">
-          <div>
-            <strong>Stärken</strong>
-            <ul>${feedback.positives.length ? feedback.positives.map((item) => `<li>${escapeHtml(item)}</li>`).join("") : "<li>Noch keine textnahe Stärke sichtbar.</li>"}</ul>
-          </div>
-          <div>
-            <strong>Nächste Schritte</strong>
-            <ul>${feedback.steps.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+      ${mode === "seb" ? "" : `
+        <div class="feedback-box">
+          <h3>Arbeitsfeedback</h3>
+          <div class="feedback-columns">
+            <div>
+              <strong>Stärken</strong>
+              <ul>${feedback.positives.length ? feedback.positives.map((item) => `<li>${escapeHtml(item)}</li>`).join("") : "<li>Noch keine textnahe Stärke sichtbar.</li>"}</ul>
+            </div>
+            <div>
+              <strong>Nächste Schritte</strong>
+              <ul>${feedback.steps.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+            </div>
           </div>
         </div>
+      `}
+    </section>
+  `;
+}
+
+function renderSebFeedbackPanel() {
+  if (mode !== "seb") {
+    return "";
+  }
+
+  const entry = currentEntry();
+  const theory = currentTheory();
+  const feedback = state.sebFeedback;
+
+  if (state.sebFeedbackStatus === "loading" && !feedback) {
+    return `
+      <section class="panel seb-feedback-panel">
+        <div class="panel-head">
+          <div>
+            <div class="eyebrow">Analytisches Fachfeedback</div>
+            <h2>Diagnose wird aufgebaut</h2>
+          </div>
+        </div>
+        <div class="empty-box">Die aktuelle Passage wird gerade im Hinblick auf Textbindung, Deutungstiefe, Theorieintegration und Revisionsreife ausgewertet.</div>
+      </section>
+    `;
+  }
+
+  if (state.sebFeedbackStatus === "error") {
+    return `
+      <section class="panel seb-feedback-panel">
+        <div class="panel-head">
+          <div>
+            <div class="eyebrow">Analytisches Fachfeedback</div>
+            <h2>Fachfeedback momentan nicht verfügbar</h2>
+          </div>
+          <button class="button secondary" data-action="refresh-seb-feedback">Erneut prüfen</button>
+        </div>
+        <div class="empty-box">${escapeHtml(state.sebFeedbackError || "Die Auswertung konnte nicht erstellt werden.")}</div>
+      </section>
+    `;
+  }
+
+  if (!feedback) {
+    return "";
+  }
+
+  return `
+    <section class="panel seb-feedback-panel">
+      <div class="panel-head">
+        <div>
+          <div class="eyebrow">Analytisches Fachfeedback</div>
+          <h2>${escapeHtml(feedback.heading)}</h2>
+        </div>
+        <div class="seb-feedback-actions">
+          <span class="status-badge">${escapeHtml(`${feedback.overallScore}/100`)}</span>
+          <button class="button secondary" data-action="refresh-seb-feedback">Neu auswerten</button>
+        </div>
+      </div>
+
+      <div class="seb-feedback-summary">
+        <p>${escapeHtml(feedback.summary)}</p>
+        <div class="seb-feedback-meta">
+          <span class="theory-tag">${escapeHtml(entry.passageLabel)}</span>
+          <span class="theory-tag">${escapeHtml(theory.shortTitle)}</span>
+          <span class="theory-tag">${escapeHtml(feedback.metadata.lessonTitle)}</span>
+          ${state.sebFeedbackStatus === "refreshing" ? '<span class="theory-tag">aktualisiert …</span>' : ""}
+        </div>
+      </div>
+
+      <div class="seb-profile-grid">
+        ${feedback.profile.map((item) => `
+          <article class="seb-profile-card">
+            <div class="seb-profile-head">
+              <strong>${escapeHtml(item.label)}</strong>
+              <span class="status-badge">${escapeHtml(`${item.score}/100`)}</span>
+            </div>
+            <div class="eyebrow">${escapeHtml(item.level)}</div>
+            <p>${escapeHtml(item.rationale)}</p>
+          </article>
+        `).join("")}
+      </div>
+
+      <div class="seb-feedback-columns">
+        <article class="seb-feedback-card is-positive">
+          <h3>Tragfähige Ansätze</h3>
+          <ul class="question-list">
+            ${feedback.strengths.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+          </ul>
+        </article>
+
+        <article class="seb-feedback-card is-caution">
+          <h3>Fachliche Schärfungszonen</h3>
+          <ul class="question-list">
+            ${feedback.cautions.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+          </ul>
+        </article>
+      </div>
+
+      <div class="seb-feedback-columns">
+        <article class="seb-feedback-card">
+          <h3>Konkrete Revisionsaufträge</h3>
+          <ol class="question-list seb-feedback-steps">
+            ${feedback.nextMoves.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+          </ol>
+        </article>
+
+        <article class="seb-feedback-card">
+          <h3>Weiterführende Rückfragen</h3>
+          <ul class="question-list">
+            ${feedback.prompts.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+          </ul>
+        </article>
       </div>
     </section>
   `;
@@ -830,6 +1049,7 @@ function render() {
 
           ${renderTheoryPanel(module, entry)}
           ${renderNotebook(entry)}
+          ${renderSebFeedbackPanel()}
           ${renderPeerReviewPanel()}
         </section>
       </section>
@@ -970,6 +1190,7 @@ document.addEventListener("click", (event) => {
     ensureSelection();
     render();
     queueSave();
+    queueSebFeedback();
   }
 
   if (action === "select-module") {
@@ -978,6 +1199,7 @@ document.addEventListener("click", (event) => {
     ensureSelection();
     render();
     queueSave();
+    queueSebFeedback();
   }
 
   if (action === "select-entry") {
@@ -985,12 +1207,14 @@ document.addEventListener("click", (event) => {
     ensureSelection();
     render();
     queueSave();
+    queueSebFeedback();
   }
 
   if (action === "select-theory") {
     state.theoryId = target.dataset.theoryId;
     render();
     queueSave();
+    queueSebFeedback();
   }
 
   if (action === "toggle-signal") {
@@ -1009,6 +1233,7 @@ document.addEventListener("click", (event) => {
     updateNoteField("evidence", nextTokens.join(", "));
     render();
     queueSave();
+    queueSebFeedback();
   }
 
   if (action === "select-review") {
@@ -1020,6 +1245,10 @@ document.addEventListener("click", (event) => {
   if (action === "export-notes") {
     exportNotes();
   }
+
+  if (action === "refresh-seb-feedback") {
+    requestSebFeedback({ showLoading: true, force: true });
+  }
 });
 
 document.addEventListener("input", (event) => {
@@ -1027,6 +1256,7 @@ document.addEventListener("input", (event) => {
   if (noteForm) {
     updateNoteField(event.target.name, event.target.value);
     queueSave();
+    queueSebFeedback();
     return;
   }
 
@@ -1064,6 +1294,9 @@ async function init() {
     state.error = "";
     ensureSelection();
     render();
+    if (mode === "seb") {
+      await requestSebFeedback({ showLoading: true, force: true });
+    }
   } catch (error) {
     state.loading = false;
     state.ready = false;

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { evaluateReaderSebFeedback } from "../services/reader-feedback.mjs";
 import {
   buildReaderBootstrap,
   buildTeacherOverview,
@@ -75,6 +76,30 @@ readerApiRouter.post("/reviews/:reviewId", async (request, response) => {
     });
 
     response.json(result);
+  } catch (error) {
+    badRequest(response, error.message);
+  }
+});
+
+readerApiRouter.post("/seb-feedback", async (request, response) => {
+  const studentId = getStudentId(request);
+  if (!studentId) {
+    return badRequest(response, "Reader-Sitzung fehlt.", 401);
+  }
+
+  try {
+    const { lessonId, moduleId, entryId, theoryId, note = {} } = request.body;
+    if (!lessonId || !moduleId || !entryId || !theoryId) {
+      return badRequest(response, "lessonId, moduleId, entryId und theoryId sind erforderlich.");
+    }
+
+    response.json(evaluateReaderSebFeedback({
+      lessonId,
+      moduleId,
+      entryId,
+      theoryId,
+      note
+    }));
   } catch (error) {
     badRequest(response, error.message);
   }
