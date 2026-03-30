@@ -355,13 +355,97 @@ function resourceAssignmentsForLesson(lesson = currentLesson()) {
     .filter(Boolean);
 }
 
+function resourceResponseKey(lessonId, resourceId) {
+  return `lesson-resource::${lessonId}::${resourceId}`;
+}
+
 function noteForEntry(entryId) {
-  return state.notes[entryId] || {
+  const raw = state.notes[entryId] || {};
+  return {
     observation: "",
     evidence: "",
     interpretation: "",
     theory: "",
-    revision: ""
+    revision: "",
+    focusAnswers: [],
+    theoryResponses: {},
+    ...raw
+  };
+}
+
+function focusAnswersFor(entry = currentEntry()) {
+  const note = noteForEntry(entry.id);
+  return entry.prompts.map((_, index) => note.focusAnswers?.[index] || "");
+}
+
+function theoryResponseFor(entry = currentEntry(), theory = currentTheory()) {
+  const note = noteForEntry(entry.id);
+  const stored = note.theoryResponses?.[theory.id] || {};
+  const transferPrompts = transferPromptsFor(entry, theory);
+
+  return {
+    guidingAnswers: theory.questions.map((_, index) => stored.guidingAnswers?.[index] || ""),
+    transferAnswers: transferPrompts.map((_, index) => stored.transferAnswers?.[index] || "")
+  };
+}
+
+function resourceResponseForAssignment(assignment, lesson = currentLesson()) {
+  const raw = state.notes[resourceResponseKey(lesson.id, assignment.resourceId)] || {};
+  return {
+    taskResponse: raw.taskResponse || "",
+    questionAnswers: assignment.questions.map((_, index) => raw.questionAnswers?.[index] || "")
+  };
+}
+
+function trimmed(value) {
+  return String(value || "").trim();
+}
+
+function documentationStatusForEntry(entry = currentEntry(), theory = currentTheory()) {
+  const note = noteForEntry(entry.id);
+  const focusAnswers = focusAnswersFor(entry);
+  const theoryResponses = theoryResponseFor(entry, theory);
+  const checks = [
+    { label: "Beobachtung", complete: Boolean(trimmed(note.observation)) },
+    { label: "Textanker / Wortlaut", complete: Boolean(trimmed(note.evidence)) },
+    { label: "Deutung", complete: Boolean(trimmed(note.interpretation)) },
+    { label: "Theoriebezug", complete: Boolean(trimmed(note.theory)) },
+    { label: "Revision / nächster Schritt", complete: Boolean(trimmed(note.revision)) },
+    ...entry.prompts.map((prompt, index) => ({
+      label: `Fokusfrage ${index + 1}: ${prompt}`,
+      complete: Boolean(trimmed(focusAnswers[index]))
+    })),
+    ...theory.questions.map((question, index) => ({
+      label: `Leitfrage ${index + 1}: ${question}`,
+      complete: Boolean(trimmed(theoryResponses.guidingAnswers[index]))
+    })),
+    ...transferPromptsFor(entry, theory).map((prompt, index) => ({
+      label: `Transfer ${index + 1}: ${prompt}`,
+      complete: Boolean(trimmed(theoryResponses.transferAnswers[index]))
+    }))
+  ];
+
+  return {
+    completed: checks.filter((item) => item.complete).length,
+    total: checks.length,
+    missing: checks.filter((item) => !item.complete).map((item) => item.label)
+  };
+}
+
+function documentationStatusForAssignment(assignment, lesson = currentLesson()) {
+  const response = resourceResponseForAssignment(assignment, lesson);
+  const checks = [
+    { label: "Arbeitsauftrag schriftlich beantworten", complete: Boolean(trimmed(response.taskResponse)) },
+    ...assignment.questions.map((question, index) => ({
+      label: `Ressourcenfrage ${index + 1}: ${question}`,
+      complete: Boolean(trimmed(response.questionAnswers[index]))
+    }))
+  ];
+
+  return {
+    completed: checks.filter((item) => item.complete).length,
+    total: checks.length,
+    missing: checks.filter((item) => !item.complete).map((item) => item.label)
   };
 }
 
@@ -557,6 +641,10 @@ function renderFocusQuestions(entry) {
 function renderNotebook(entry) {
   const note = noteForEntry(entry.id);
   const feedback = feedbackFor(note, currentModule(), entry);
+  const theory = currentTheory();
+  const focusAnswers = focusAnswersFor(entry);
+  const theoryResponses = theoryResponseFor(entry, theory);
+  const documentation = documentationStatusForEntry(entry, theory);
 
   return `
     <section class="panel notebook">
@@ -566,6 +654,14 @@ function renderNotebook(entry) {
           <h2>${escapeHtml(entry.title)}</h2>
         </div>
         <button class="button secondary" data-action="export-notes">Markdown exportieren</button>
+      </div>
+
+      <div class="documentation-status-box ${documentation.missing.length ? "is-warning" : "is-complete"}">
+        <strong data-doc-summary="entry">${escapeHtml(`Dokumentationsstand: ${documentation.completed}/${documentation.total}`)}</strong>
+        <p data-doc-missing="entry">${documentation.missing.length
+          ? escapeHtml(`Noch offen: ${documentation.missing.join(" · ")}`)
+          : "Alle Fokusfragen, Leitfragen und Transferfragen sind schriftlich dokumentiert."
+        }</p>
       </div>
 
       <form id="note-form" class="note-grid">
@@ -589,6 +685,48 @@ function renderNotebook(entry) {
           Revision / nächster Schritt
           <textarea name="revision" placeholder="Was würdest du nach Feedback oder erneuter Lektüre noch schärfen?">${escapeHtml(note.revision)}</textarea>
         </label>
+
+        <section class="structured-section">
+          <div class="section-head">
+            <strong>Fokusfragen schriftlich beantworten</strong>
+            <span class="status-badge" data-doc-count="focus">${escapeHtml(`${focusAnswers.filter((value) => trimmed(value)).length}/${entry.prompts.length}`)}</span>
+          </div>
+          ${entry.prompts.map((prompt, index) => `
+            <label>
+              ${escapeHtml(`Fokusfrage ${index + 1}`)}
+              <span class="field-prompt">${escapeHtml(prompt)}</span>
+              <textarea data-note-array="focusAnswers" data-index="${index}" placeholder="Formuliere hier eine knappe, textnahe Antwort.">${escapeHtml(focusAnswers[index])}</textarea>
+            </label>
+          `).join("")}
+        </section>
+
+        <section class="structured-section">
+          <div class="section-head">
+            <strong>${escapeHtml(`Leitfragen zu ${theory.shortTitle}`)}</strong>
+            <span class="status-badge" data-doc-count="guiding">${escapeHtml(`${theoryResponses.guidingAnswers.filter((value) => trimmed(value)).length}/${theory.questions.length}`)}</span>
+          </div>
+          ${theory.questions.map((question, index) => `
+            <label>
+              ${escapeHtml(`Leitfrage ${index + 1}`)}
+              <span class="field-prompt">${escapeHtml(question)}</span>
+              <textarea data-note-theory-section="guidingAnswers" data-index="${index}" placeholder="Halte deine Antwort zur Leitfrage schriftlich fest.">${escapeHtml(theoryResponses.guidingAnswers[index])}</textarea>
+            </label>
+          `).join("")}
+        </section>
+
+        <section class="structured-section">
+          <div class="section-head">
+            <strong>Transfer zur Passage schriftlich festhalten</strong>
+            <span class="status-badge" data-doc-count="transfer">${escapeHtml(`${theoryResponses.transferAnswers.filter((value) => trimmed(value)).length}/${transferPromptsFor(entry, theory).length}`)}</span>
+          </div>
+          ${transferPromptsFor(entry, theory).map((prompt, index) => `
+            <label>
+              ${escapeHtml(`Transfer ${index + 1}`)}
+              <span class="field-prompt">${escapeHtml(prompt)}</span>
+              <textarea data-note-theory-section="transferAnswers" data-index="${index}" placeholder="Übertrage die Theorie hier ausdrücklich auf die aktuelle Passage.">${escapeHtml(theoryResponses.transferAnswers[index])}</textarea>
+            </label>
+          `).join("")}
+        </section>
       </form>
 
       ${mode === "seb" ? "" : `
@@ -841,7 +979,11 @@ function renderResourceAssignmentsPanel() {
       </div>
 
       <div class="resource-assignment-grid">
-        ${assignments.map(({ resource, title, summary, task, questions }) => `
+        ${assignments.map((assignment) => {
+          const { resource, title, summary, task, questions } = assignment;
+          const response = resourceResponseForAssignment(assignment);
+          const documentation = documentationStatusForAssignment(assignment);
+          return `
           <section class="resource-assignment-card">
             <div class="panel-head">
               <div>
@@ -852,6 +994,14 @@ function renderResourceAssignmentsPanel() {
             </div>
 
             <p>${escapeHtml(summary)}</p>
+
+            <div class="documentation-status-box ${documentation.missing.length ? "is-warning" : "is-complete"}" data-doc-box="resource" data-resource-id="${resource.id}">
+              <strong data-doc-summary="resource">${escapeHtml(`Dokumentationsstand: ${documentation.completed}/${documentation.total}`)}</strong>
+              <p data-doc-missing="resource">${documentation.missing.length
+                ? escapeHtml(`Noch offen: ${documentation.missing.join(" · ")}`)
+                : "Der Ressourcen-Auftrag ist vollständig schriftlich dokumentiert."
+              }</p>
+            </div>
 
             <div class="resource-task-box">
               <strong>Konkreter Arbeitsauftrag</strong>
@@ -871,6 +1021,31 @@ function renderResourceAssignmentsPanel() {
               </div>
             </div>
 
+            <section class="structured-section">
+              <div class="section-head">
+                <strong>Arbeitsauftrag schriftlich beantworten</strong>
+              </div>
+              <label>
+                ${escapeHtml(title)}
+                <span class="field-prompt">${escapeHtml(task)}</span>
+                <textarea data-resource-id="${resource.id}" data-resource-field="taskResponse" placeholder="Halte hier deine zusammenhängende Antwort zum Ressourcen-Auftrag fest.">${escapeHtml(response.taskResponse)}</textarea>
+              </label>
+            </section>
+
+            <section class="structured-section">
+              <div class="section-head">
+                <strong>Leitfragen schriftlich beantworten</strong>
+                <span class="status-badge" data-doc-count="resource-questions" data-resource-id="${resource.id}">${escapeHtml(`${response.questionAnswers.filter((value) => trimmed(value)).length}/${questions.length}`)}</span>
+              </div>
+              ${questions.map((question, index) => `
+                <label>
+                  ${escapeHtml(`Ressourcenfrage ${index + 1}`)}
+                  <span class="field-prompt">${escapeHtml(question)}</span>
+                  <textarea data-resource-id="${resource.id}" data-resource-field="questionAnswers" data-index="${index}" placeholder="Formuliere hier eine präzise schriftliche Antwort.">${escapeHtml(response.questionAnswers[index])}</textarea>
+                </label>
+              `).join("")}
+            </section>
+
             <div class="video-card">
               ${resource.mediaType === "pdf"
                 ? `<div class="pdf-frame-wrap"><iframe class="pdf-frame" src="${escapeHtml(resource.embedUrl)}#page=1&zoom=page-width" title="${escapeHtml(resource.title)}"></iframe></div>`
@@ -878,7 +1053,8 @@ function renderResourceAssignmentsPanel() {
               }
             </div>
           </section>
-        `).join("")}
+        `;
+        }).join("")}
       </div>
     </article>
   `;
@@ -1253,6 +1429,132 @@ function updateNoteField(field, value) {
   state.saveStatus = "idle";
 }
 
+function updateNoteArrayField(field, index, value) {
+  const entry = currentEntry();
+  const note = noteForEntry(entry.id);
+  const nextValues = Array.isArray(note[field]) ? [...note[field]] : [];
+  nextValues[index] = value;
+  state.notes[entry.id] = {
+    ...note,
+    [field]: nextValues
+  };
+  state.saveStatus = "idle";
+}
+
+function updateTheoryAnswer(section, index, value) {
+  const entry = currentEntry();
+  const theory = currentTheory();
+  const note = noteForEntry(entry.id);
+  const stored = note.theoryResponses?.[theory.id] || {};
+  const nextSection = Array.isArray(stored[section]) ? [...stored[section]] : [];
+  nextSection[index] = value;
+
+  state.notes[entry.id] = {
+    ...note,
+    theoryResponses: {
+      ...(note.theoryResponses || {}),
+      [theory.id]: {
+        ...stored,
+        [section]: nextSection
+      }
+    }
+  };
+  state.saveStatus = "idle";
+}
+
+function updateResourceResponse(resourceId, field, index, value) {
+  const lesson = currentLesson();
+  const key = resourceResponseKey(lesson.id, resourceId);
+  const current = state.notes[key] || {};
+
+  if (field === "questionAnswers") {
+    const nextAnswers = Array.isArray(current.questionAnswers) ? [...current.questionAnswers] : [];
+    nextAnswers[index] = value;
+    state.notes[key] = {
+      ...current,
+      questionAnswers: nextAnswers
+    };
+  } else {
+    state.notes[key] = {
+      ...current,
+      [field]: value
+    };
+  }
+
+  state.saveStatus = "idle";
+}
+
+function updateLiveDocumentation() {
+  const entry = currentEntry();
+  const theory = currentTheory();
+  if (entry && theory) {
+    const focusAnswers = focusAnswersFor(entry);
+    const theoryResponses = theoryResponseFor(entry, theory);
+    const documentation = documentationStatusForEntry(entry, theory);
+    const summary = document.querySelector('[data-doc-summary="entry"]');
+    const missing = document.querySelector('[data-doc-missing="entry"]');
+    const focusCount = document.querySelector('[data-doc-count="focus"]');
+    const guidingCount = document.querySelector('[data-doc-count="guiding"]');
+    const transferCount = document.querySelector('[data-doc-count="transfer"]');
+    const entryBox = summary?.closest(".documentation-status-box");
+
+    if (summary) {
+      summary.textContent = `Dokumentationsstand: ${documentation.completed}/${documentation.total}`;
+    }
+
+    if (missing) {
+      missing.textContent = documentation.missing.length
+        ? `Noch offen: ${documentation.missing.join(" · ")}`
+        : "Alle Fokusfragen, Leitfragen und Transferfragen sind schriftlich dokumentiert.";
+    }
+
+    if (entryBox) {
+      entryBox.classList.toggle("is-warning", Boolean(documentation.missing.length));
+      entryBox.classList.toggle("is-complete", !documentation.missing.length);
+    }
+
+    if (focusCount) {
+      focusCount.textContent = `${focusAnswers.filter((value) => trimmed(value)).length}/${entry.prompts.length}`;
+    }
+
+    if (guidingCount) {
+      guidingCount.textContent = `${theoryResponses.guidingAnswers.filter((value) => trimmed(value)).length}/${theory.questions.length}`;
+    }
+
+    if (transferCount) {
+      transferCount.textContent = `${theoryResponses.transferAnswers.filter((value) => trimmed(value)).length}/${transferPromptsFor(entry, theory).length}`;
+    }
+  }
+
+  for (const assignment of resourceAssignmentsForLesson()) {
+    const documentation = documentationStatusForAssignment(assignment);
+    const box = document.querySelector(`[data-doc-box="resource"][data-resource-id="${assignment.resourceId}"]`);
+    const summary = box?.querySelector('[data-doc-summary="resource"]');
+    const missing = box?.querySelector('[data-doc-missing="resource"]');
+    const count = document.querySelector(`[data-doc-count="resource-questions"][data-resource-id="${assignment.resourceId}"]`);
+    const response = resourceResponseForAssignment(assignment);
+
+    if (summary) {
+      summary.textContent = `Dokumentationsstand: ${documentation.completed}/${documentation.total}`;
+    }
+
+    if (missing) {
+      missing.textContent = documentation.missing.length
+        ? `Noch offen: ${documentation.missing.join(" · ")}`
+        : "Der Ressourcen-Auftrag ist vollständig schriftlich dokumentiert.";
+    }
+
+    if (box) {
+      box.classList.toggle("is-warning", Boolean(documentation.missing.length));
+      box.classList.toggle("is-complete", !documentation.missing.length);
+    }
+
+    if (count) {
+      count.textContent = `${response.questionAnswers.filter((value) => trimmed(value)).length}/${assignment.questions.length}`;
+    }
+  }
+}
+
 function updateReviewField(field, value) {
   const review = currentReviewAssignment();
   if (!review) {
@@ -1331,9 +1633,49 @@ function exportNotes() {
       summary: lesson.summary,
       reviewFocus: lesson.reviewFocus,
       pageRange: pageRangeForLesson(lesson),
+      resources: resourceAssignmentsForLesson(lesson).map((assignment) => {
+        const response = resourceResponseForAssignment(assignment, lesson);
+        const documentation = documentationStatusForAssignment(assignment, lesson);
+
+        return {
+          title: assignment.title,
+          sourceTitle: assignment.resource.sourceTitle,
+          summary: assignment.summary,
+          task: assignment.task,
+          taskResponse: response.taskResponse,
+          questions: assignment.questions.map((question, index) => ({
+            prompt: question,
+            answer: response.questionAnswers[index] || ""
+          })),
+          documentation
+        };
+      }),
       entries: entriesForLesson(lesson).map((entry) => {
         const note = noteForEntry(entry.id);
         const module = entryIndex.get(entry.id)?.module;
+        const exportTheories = theoryOptionsFor(module, entry);
+        const documentationTheory = exportTheories.find((resource) => resource.id === state.theoryId) || exportTheories[0];
+        const theorySections = theoryIdsFor(module, entry)
+          .map((theoryId) => theoryResources.find((resource) => resource.id === theoryId))
+          .filter(Boolean)
+          .map((theory) => {
+            const stored = note.theoryResponses?.[theory.id] || {};
+            const transferPrompts = transferPromptsFor(entry, theory);
+
+            return {
+              title: theory.title,
+              sourceTitle: theory.sourceTitle,
+              guidingQuestions: theory.questions.map((question, index) => ({
+                prompt: question,
+                answer: stored.guidingAnswers?.[index] || ""
+              })),
+              transferQuestions: transferPrompts.map((prompt, index) => ({
+                prompt,
+                answer: stored.transferAnswers?.[index] || ""
+              }))
+            };
+          });
+
         return {
           title: entry.title,
           moduleTitle: module?.title || "-",
@@ -1343,6 +1685,12 @@ function exportNotes() {
           prompts: entry.prompts,
           signalWords: entry.signalWords,
           writingFrame: entry.writingFrame,
+          focusAnswers: entry.prompts.map((prompt, index) => ({
+            prompt,
+            answer: note.focusAnswers?.[index] || ""
+          })),
+          theorySections,
+          documentation: documentationTheory ? documentationStatusForEntry(entry, documentationTheory) : null,
           answers: {
             observation: note.observation || "-",
             evidence: note.evidence || "-",
@@ -1442,9 +1790,28 @@ document.addEventListener("click", (event) => {
 document.addEventListener("input", (event) => {
   const noteForm = event.target.closest("#note-form");
   if (noteForm) {
-    updateNoteField(event.target.name, event.target.value);
+    if (event.target.dataset.noteArray) {
+      updateNoteArrayField(event.target.dataset.noteArray, Number(event.target.dataset.index || 0), event.target.value);
+    } else if (event.target.dataset.noteTheorySection) {
+      updateTheoryAnswer(event.target.dataset.noteTheorySection, Number(event.target.dataset.index || 0), event.target.value);
+    } else {
+      updateNoteField(event.target.name, event.target.value);
+    }
     queueSave();
     queueSebFeedback();
+    updateLiveDocumentation();
+    return;
+  }
+
+  if (event.target.dataset.resourceId) {
+    updateResourceResponse(
+      event.target.dataset.resourceId,
+      event.target.dataset.resourceField,
+      Number(event.target.dataset.index || 0),
+      event.target.value
+    );
+    queueSave();
+    updateLiveDocumentation();
     return;
   }
 
