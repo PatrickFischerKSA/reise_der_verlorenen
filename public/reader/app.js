@@ -1,4 +1,4 @@
-import { pdfSource, readerModules, starterPrompt } from "./data.js";
+import { pdfSource, readerModules, starterPrompt, theoryResources } from "./data.js";
 
 const mode = window.THIEL_READER_MODE || "open";
 const modeLabel = window.THIEL_READER_MODE_LABEL || "Offene Version";
@@ -8,10 +8,12 @@ const app = document.body;
 const defaultState = {
   moduleId: readerModules[0].id,
   entryId: readerModules[0].entries[0].id,
+  theoryId: theoryResources[0].id,
   notes: {}
 };
 
 const state = loadState();
+ensureTheorySelection();
 
 function loadState() {
   try {
@@ -49,11 +51,45 @@ function currentEntry() {
   return currentModule().entries.find((entry) => entry.id === state.entryId) || currentModule().entries[0];
 }
 
+function theoryIdsFor(module = currentModule(), entry = currentEntry()) {
+  const ids = [...(module.relatedTheoryIds || []), ...(entry.relatedTheoryIds || [])];
+  return [...new Set(ids)].filter((id) => theoryResources.some((resource) => resource.id === id));
+}
+
+function theoryOptionsFor(module = currentModule(), entry = currentEntry()) {
+  const ids = theoryIdsFor(module, entry);
+  if (!ids.length) {
+    return theoryResources;
+  }
+
+  return ids
+    .map((id) => theoryResources.find((resource) => resource.id === id))
+    .filter(Boolean);
+}
+
+function ensureTheorySelection(module = currentModule(), entry = currentEntry()) {
+  const options = theoryOptionsFor(module, entry);
+  if (!options.length) {
+    state.theoryId = theoryResources[0].id;
+    return;
+  }
+
+  if (!options.some((resource) => resource.id === state.theoryId)) {
+    state.theoryId = options[0].id;
+  }
+}
+
+function currentTheory() {
+  const options = theoryOptionsFor();
+  return options.find((resource) => resource.id === state.theoryId) || options[0] || theoryResources[0];
+}
+
 function noteForEntry(entryId) {
   return state.notes[entryId] || {
     observation: "",
     evidence: "",
     interpretation: "",
+    theory: "",
     revision: ""
   };
 }
@@ -61,19 +97,28 @@ function noteForEntry(entryId) {
 function completion(module) {
   const completed = module.entries.filter((entry) => {
     const note = noteForEntry(entry.id);
-    return note.observation.trim() || note.interpretation.trim();
+    return note.observation.trim() || note.interpretation.trim() || note.theory.trim();
   }).length;
 
   return `${completed}/${module.entries.length}`;
 }
 
-function feedbackFor(note, module) {
-  const body = `${note.observation} ${note.interpretation}`.toLowerCase();
+function transferPromptsFor(entry, theory) {
+  return [
+    `Beziehe "${entry.passageLabel}" gezielt auf ${theory.shortTitle.toLowerCase()} und sichere deine Aussage mit mindestens zwei Wörtern aus dem Text.`,
+    ...theory.transferPrompts.slice(0, 2)
+  ];
+}
+
+function feedbackFor(note, module, entry) {
+  const body = `${note.observation} ${note.interpretation} ${note.theory}`.toLowerCase();
   const evidence = note.evidence.toLowerCase();
+  const theory = note.theory.toLowerCase();
   const signals = ["zeigt", "verdeutlicht", "deutet", "wirkt", "weil"];
   const summarySignals = ["dann", "danach", "passiert", "anschließend"];
   const positives = [];
   const steps = [];
+  const relatedTheories = theoryOptionsFor(module, entry);
 
   if (evidence.trim().length >= 8) {
     positives.push("Du arbeitest bereits mit konkreten Wortsignalen aus dem Text.");
@@ -84,15 +129,42 @@ function feedbackFor(note, module) {
   if (signals.some((signal) => body.includes(signal))) {
     positives.push("Deine Notiz enthält bereits eine deutende Begründung.");
   } else {
-    steps.push("Formuliere deutlicher, was die Stelle zeigt oder andeutet.");
+    steps.push("Formuliere deutlicher, was die Stelle zeigt, andeutet oder bewirkt.");
   }
 
   if (summarySignals.some((signal) => body.includes(signal))) {
     steps.push("Achte darauf, nicht nur den Ablauf zu erzählen, sondern die sprachliche Wirkung zu erklären.");
   }
 
+  if (note.theory.trim().length >= 20) {
+    positives.push("Du verknüpfst die Passage schon mit einer Theorie-Linse.");
+  } else if (relatedTheories.length) {
+    steps.push(`Ziehe zusätzlich eine Theorie-Linse heran: ${relatedTheories.map((resource) => resource.shortTitle).join(", ")}.`);
+  }
+
   if (module.lens && !body.includes(module.lens.toLowerCase().split(",")[0])) {
     steps.push(`Binde deine Beobachtung noch stärker an die Linse des Moduls: ${module.lens.toLowerCase()}.`);
+  }
+
+  if (entry.relatedTheoryIds?.includes("naturalismus")) {
+    const naturalismTerms = ["milieu", "arbeit", "körper", "wirklichkeit", "druck", "sozial"];
+    if (naturalismTerms.some((term) => theory.includes(term))) {
+      positives.push("Der Theoriebezug zur naturalistischen Darstellung ist schon sichtbar.");
+    }
+  }
+
+  if (entry.relatedTheoryIds?.includes("perspektive")) {
+    const perspectiveTerms = ["erzähler", "perspektive", "nähe", "distanz", "wahrnehmung"];
+    if (perspectiveTerms.some((term) => theory.includes(term))) {
+      positives.push("Du achtest bereits darauf, wie die Erzählperspektive die Deutung lenkt.");
+    }
+  }
+
+  if (entry.relatedTheoryIds?.includes("novelle")) {
+    const novellaTerms = ["wendepunkt", "novelle", "konflikt", "verdichtung", "motiv"];
+    if (novellaTerms.some((term) => theory.includes(term))) {
+      positives.push("Du bindest die Passage schon an die Formlogik der Novelle zurück.");
+    }
   }
 
   if (!steps.length) {
@@ -115,6 +187,15 @@ function renderSidebar() {
   `).join("");
 }
 
+function renderTheorySelector(module, entry) {
+  return theoryOptionsFor(module, entry).map((resource) => `
+    <button class="theory-pill ${resource.id === state.theoryId ? "is-active" : ""}" data-action="select-theory" data-theory-id="${resource.id}">
+      <span>${escapeHtml(resource.shortTitle)}</span>
+      <small>${escapeHtml(resource.sourceTitle)}</small>
+    </button>
+  `).join("");
+}
+
 function renderEntryTabs(module) {
   return module.entries.map((entry) => `
     <button class="entry-tab ${entry.id === state.entryId ? "is-active" : ""}" data-action="select-entry" data-entry-id="${entry.id}">
@@ -128,7 +209,7 @@ function renderPassageNavigator(module) {
     <button class="passage-card ${entry.id === state.entryId ? "is-active" : ""}" data-action="select-entry" data-entry-id="${entry.id}">
       <span class="passage-page">${escapeHtml(entry.pageHint)}</span>
       <strong>${escapeHtml(entry.passageLabel)}</strong>
-      <span>${escapeHtml(entry.prompt)}</span>
+      <span>${escapeHtml(entry.prompts[0])}</span>
     </button>
   `).join("");
 }
@@ -146,9 +227,17 @@ function renderPromptList() {
   return starterPrompt.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
 }
 
+function renderFocusQuestions(entry) {
+  return `
+    <ul class="question-list">
+      ${entry.prompts.map((prompt) => `<li>${escapeHtml(prompt)}</li>`).join("")}
+    </ul>
+  `;
+}
+
 function renderNotebook(entry) {
   const note = noteForEntry(entry.id);
-  const feedback = feedbackFor(note, currentModule());
+  const feedback = feedbackFor(note, currentModule(), entry);
 
   return `
     <section class="panel notebook">
@@ -163,7 +252,7 @@ function renderNotebook(entry) {
       <form id="note-form" class="note-grid">
         <label>
           Beobachtung
-          <textarea name="observation" placeholder="Was fällt an Raum, Figur, Perspektive oder Stimmung auf?">${escapeHtml(note.observation)}</textarea>
+          <textarea name="observation" placeholder="Was fällt an Raum, Figur, Sprache oder Stimmung auf?">${escapeHtml(note.observation)}</textarea>
         </label>
         <label>
           Signalwörter / Wortlaut
@@ -174,8 +263,12 @@ function renderNotebook(entry) {
           <textarea name="interpretation" placeholder="Was zeigt diese Stelle? Welche Wirkung entsteht?">${escapeHtml(note.interpretation)}</textarea>
         </label>
         <label>
+          Theoriebezug
+          <textarea name="theory" placeholder="Verbinde die Passage mit Novelle, Naturalismus oder Erzählperspektive.">${escapeHtml(note.theory)}</textarea>
+        </label>
+        <label>
           Revision / nächster Schritt
-          <textarea name="revision" placeholder="Was würdest du nach Feedback noch schärfen?">${escapeHtml(note.revision)}</textarea>
+          <textarea name="revision" placeholder="Was würdest du nach Feedback oder erneuter Lektüre noch schärfen?">${escapeHtml(note.revision)}</textarea>
         </label>
       </form>
 
@@ -226,19 +319,75 @@ function renderPdfPanel(entry, module) {
   `;
 }
 
+function renderTheoryPanel(module, entry) {
+  const theory = currentTheory();
+  const transferPrompts = transferPromptsFor(entry, theory);
+
+  return `
+    <article class="panel theory-panel">
+      <div class="panel-head">
+        <div>
+          <div class="eyebrow">Theorie-Linse</div>
+          <h2>${escapeHtml(theory.title)}</h2>
+        </div>
+        <a class="button secondary" href="${escapeHtml(theory.openUrl)}" target="_blank" rel="noreferrer">Video extern öffnen</a>
+      </div>
+
+      <div class="theory-summary">
+        <p>${escapeHtml(theory.summary)}</p>
+        <div class="theory-tag-row">
+          ${theory.keyIdeas.map((idea) => `<span class="theory-tag">${escapeHtml(idea)}</span>`).join("")}
+        </div>
+      </div>
+
+      <div class="theory-grid">
+        <div class="theory-card">
+          <strong>Leitfragen</strong>
+          <ul class="question-list">
+            ${theory.questions.map((question) => `<li>${escapeHtml(question)}</li>`).join("")}
+          </ul>
+        </div>
+        <div class="theory-card">
+          <strong>Transfer zur Passage</strong>
+          <ul class="question-list">
+            ${transferPrompts.map((question) => `<li>${escapeHtml(question)}</li>`).join("")}
+          </ul>
+        </div>
+      </div>
+
+      <div class="writing-frame-box">
+        <strong>Schreibhilfe</strong>
+        <p>${escapeHtml(theory.writingFrame)}</p>
+      </div>
+
+      <div class="video-card">
+        <div class="video-wrap">
+          <video class="theory-video" controls preload="metadata">
+            <source src="${escapeHtml(theory.embedUrl)}" type="video/mp4">
+          </video>
+        </div>
+        <p class="video-note">
+          Falls das Video im Browser nicht direkt lädt, kannst du es jederzeit über den externen Link öffnen.
+        </p>
+      </div>
+    </article>
+  `;
+}
+
 function render() {
   const module = currentModule();
   const entry = currentEntry();
+  ensureTheorySelection(module, entry);
 
   app.innerHTML = `
     <main class="reader-shell">
       <section class="hero">
         <div>
           <div class="eyebrow">Bahnwärter Thiel · ${escapeHtml(modeLabel)}</div>
-          <h1>PDF-Lesetool für textnahe Arbeit</h1>
+          <h1>Engmaschiges PDF-Lesetool für die ganze Novelle</h1>
           <p>
-            Der Text ist direkt integriert. Links steuerst du die Arbeitsmodule, in der Mitte liest du die passende
-            Passage im eingebetteten PDF, rechts notierst du Beobachtungen, Textanker und Deutungen.
+            Der Text ist vollständig integriert. Links steuerst du den Textpfad und die Theorie-Linsen, in der Mitte
+            liest du die passende Passage im PDF, rechts verbindest du Textbeobachtung, Theoriebezug und Überarbeitung.
           </p>
         </div>
         <div class="hero-actions">
@@ -252,15 +401,23 @@ function render() {
           <div class="panel-head">
             <div>
               <div class="eyebrow">${escapeHtml(starterPrompt.title)}</div>
-              <h2>Module</h2>
+              <h2>Textpfad</h2>
             </div>
           </div>
           <ul class="prompt-list">${renderPromptList()}</ul>
           <div class="module-list">${renderSidebar()}</div>
+
           <div class="sidebar-task">
             <strong>${escapeHtml(module.title)}</strong>
             <p>${escapeHtml(module.task)}</p>
           </div>
+
+          <section class="theory-sidebar">
+            <div class="eyebrow">Theorie-Ressourcen</div>
+            <div class="theory-pill-list">
+              ${renderTheorySelector(module, entry)}
+            </div>
+          </section>
         </aside>
 
         ${renderPdfPanel(entry, module)}
@@ -281,12 +438,17 @@ function render() {
               <p>${escapeHtml(entry.context)}</p>
               <div class="signal-grid">${renderSignalWords(entry)}</div>
               <div class="prompt-box">
-                <strong>Fokusfrage</strong>
-                <p>${escapeHtml(entry.prompt)}</p>
+                <strong>Fokusfragen</strong>
+                ${renderFocusQuestions(entry)}
+              </div>
+              <div class="writing-frame-box">
+                <strong>Satzstarter</strong>
+                <p>${escapeHtml(entry.writingFrame)}</p>
               </div>
             </div>
           </article>
 
+          ${renderTheoryPanel(module, entry)}
           ${renderNotebook(entry)}
         </section>
       </section>
@@ -325,6 +487,7 @@ function exportNotes() {
       lines.push(`Signalwörter: ${note.evidence || entry.signalWords.join(", ")}`);
       lines.push(`Beobachtung: ${note.observation || "-"}`);
       lines.push(`Deutung: ${note.interpretation || "-"}`);
+      lines.push(`Theoriebezug: ${note.theory || "-"}`);
       lines.push(`Revision: ${note.revision || "-"}`);
       lines.push("");
     }
@@ -350,12 +513,20 @@ document.addEventListener("click", (event) => {
   if (action === "select-module") {
     state.moduleId = target.dataset.moduleId;
     state.entryId = currentModule().entries[0].id;
+    ensureTheorySelection();
     persistState();
     render();
   }
 
   if (action === "select-entry") {
     state.entryId = target.dataset.entryId;
+    ensureTheorySelection();
+    persistState();
+    render();
+  }
+
+  if (action === "select-theory") {
+    state.theoryId = target.dataset.theoryId;
     persistState();
     render();
   }
