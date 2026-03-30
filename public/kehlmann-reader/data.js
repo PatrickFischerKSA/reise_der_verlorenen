@@ -670,61 +670,121 @@ export const readerModules = [
 
 export const lessonSets = [
   {
-    id: "lesson-abfahrt",
-    title: "Lektion 1 · Auftakt, Abfahrt und Zwischenraum",
+    id: "lesson-01-auftakt",
+    title: "Lektion 1 · Täterauftakt und Spezialfahrt",
     summary:
-      "Täteransprache, institutionelle Exposition und das Schiff als paradoxer Schutzraum.",
+      "Schiendicks Auftaktrede und die institutionelle Exposition der Fahrt als belastete Ausnahme.",
+    entryIds: ["abfahrt-1", "abfahrt-2"],
+    moduleIds: ["abfahrt"],
+    reviewFocus: "Achte auf Täterrede, Publikumseffekt, institutionelle Sprache und die frühe politische Rahmung der Fahrt.",
+    sebPrompt:
+      "Analysiere die Eröffnung und die Vorbereitung der Fahrt. Zeige am Wortlaut, wie Täteransprache, Unternehmenslogik und politische Bedrohung von Beginn an zusammenwirken."
+  },
+  {
+    id: "lesson-02-fluchtstimmen",
+    title: "Lektion 2 · Fluchtstimmen und fragile Hoffnung",
+    summary:
+      "Pozners Zeugenschaft, private Hoffnungsbilder und erste provisorische Sicherheit an Bord.",
+    entryIds: ["abfahrt-3", "abfahrt-4", "zwischenraum-1"],
     moduleIds: ["abfahrt", "zwischenraum"],
-    reviewFocus: "Achte auf Täterrede, Exposition, dokumentarische Verfahren und die widersprüchliche Raumlogik des Schiffs.",
+    reviewFocus: "Arbeite genau an Zeugenschaft, Familienmotiven und der paradoxen Normalität an Bord.",
     sebPrompt:
-      "Bearbeite zwei Passagen aus dem Auftakt oder dem Schiffszwischenraum. Sichere den Wortlaut und verbinde deine Analyse mit Dokumentartheater, epischem Theater oder historischem Kontext."
+      "Zeige, wie Kehlmann frühe Opferstimmen und private Hoffnungsbilder gestaltet, ohne die politische Bedrohung aus dem Blick zu verlieren."
   },
   {
-    id: "lesson-havanna",
-    title: "Lektion 2 · Havanna und verweigerte Aufnahme",
+    id: "lesson-03-schiffssystem",
+    title: "Lektion 3 · Das Schiff als Systemraum",
     summary:
-      "Korruption, politische Formeln der Abwehr und erste massive Zuspitzung der Krise.",
+      "Bürokratie, Gerüchte und moralische Linien an Bord zwischen Service, Zynismus und Mitgefühl.",
+    entryIds: ["zwischenraum-2", "zwischenraum-3", "zwischenraum-4"],
+    moduleIds: ["zwischenraum"],
+    reviewFocus: "Analysiere das Schiff als widersprüchlichen Raum aus Ordnung, Gerücht und fortgesetzter Gewalt.",
+    sebPrompt:
+      "Untersuche, wie das Stück auf dem Schiff ökonomische, moralische und politische Konfliktlinien gleichzeitig sichtbar macht."
+  },
+  {
+    id: "lesson-04-havanna-macht",
+    title: "Lektion 4 · Havanna als Machtbühne",
+    summary:
+      "Korruption, Scheinlegalität und politische Abwehrformeln in den ersten Kuba-Szenen.",
+    entryIds: ["havanna-1", "havanna-2"],
     moduleIds: ["havanna"],
-    reviewFocus: "Arbeite heraus, wie politische Sprache und private Verzweiflung ineinandergreifen.",
+    reviewFocus: "Achte auf politische Sprache, offene Selbstentlarvung und Willkür im Gewand von Verfahren.",
     sebPrompt:
-      "Untersuche zwei Passagen aus Havanna. Zeige, wie das Stück politische Willkür, Scheinlegalität und individuelle Bedrohung verbindet."
+      "Zeige an zwei Passagen, wie Havanna als Bühne von Bestechung, Machtkalkül und verweigerter Aufnahme aufgebaut wird."
   },
   {
-    id: "lesson-hafenkrise",
-    title: "Lektion 3 · Hafenkrise und zerschnittene Hoffnung",
+    id: "lesson-05-havanna-menschen",
+    title: "Lektion 5 · Havanna und die zerschnittenen Familien",
     summary:
-      "Warten, Drohung, Gewalt an Bord und die schmerzhafte Sichtbarkeit der unerreichbaren Rettung.",
+      "Einzelschicksale, Höflichkeit im Unrecht und menschliche Katastrophe unter politischen Entscheidungen.",
+    entryIds: ["havanna-3", "havanna-4"],
+    moduleIds: ["havanna"],
+    reviewFocus: "Arbeite heraus, wie das Stück Einzelschicksale gegen die kalte politische Logik stellt.",
+    sebPrompt:
+      "Untersuche, wie private Verluste und höflich organisierte Vertreibung die politische Katastrophe noch schärfer sichtbar machen."
+  },
+  {
+    id: "lesson-06-hafen-hoffnung",
+    title: "Lektion 6 · Organisierte Hoffnung und offene Gewalt",
+    summary:
+      "Komitee, Telegramme und zugleich die Eskalation der Gewalt an Bord.",
+    entryIds: ["hafenkrise-1", "hafenkrise-2"],
     moduleIds: ["hafenkrise"],
-    reviewFocus: "Verbinde Blickregie, Bühnenbild, Familienmomente und Spannungserzeugung präzise mit dem Wortlaut.",
+    reviewFocus: "Verbinde Hoffnungstechniken, Gerüchte, Gewalt und Raumerfahrung präzise mit dem Wortlaut.",
     sebPrompt:
-      "Analysiere zwei Szenen der Hafenkrise. Zeige, wie Kehlmann aus Warten, Distanz und Gewalt eine immer größere Zuspitzung baut."
+      "Zeige, wie Kehlmann in der Hafenkrise Hoffnung organisiert und im selben Zug wieder zerstört."
   },
   {
-    id: "lesson-diplomatie",
-    title: "Lektion 4 · Diplomatie, Öffentlichkeit und Nicht-Handeln",
+    id: "lesson-07-hafen-blickszenen",
+    title: "Lektion 7 · Blickszenen, Distanz und Trennung",
     summary:
-      "Verhandlungen, Pressebilder, Deals, Suizidversuche und politische Verantwortungsverschiebung.",
+      "Havanna bleibt sichtbar und unerreichbar; politische Krise verdichtet sich zu Familienbildern und Distanzszenen.",
+    entryIds: ["hafenkrise-3", "hafenkrise-4"],
+    moduleIds: ["hafenkrise"],
+    reviewFocus: "Achte auf Blickregie, Distanz, Bühnenraum und die Übersetzung von Politik in einzelne Bilder.",
+    sebPrompt:
+      "Analysiere, wie das Drama mit Sichtbarkeit ohne Ankunft arbeitet und dadurch die Unmenschlichkeit der Situation steigert."
+  },
+  {
+    id: "lesson-08-diplomatie-inszenierung",
+    title: "Lektion 8 · Politik als Inszenierung",
+    summary:
+      "Gesichtswahrung, Presse, Verhandlungen und kollektive Verzweiflung als zweite große Zuspitzung.",
+    entryIds: ["diplomatie-1", "diplomatie-2"],
     moduleIds: ["diplomatie"],
-    reviewFocus: "Achte auf politische Sprache, Unterlassung, Verhandlungsszenen und die Frage nach Verantwortung.",
+    reviewFocus: "Untersuche Politik als Bühne und frage, wie öffentliches Handeln und psychische Zerstörung zusammenhängen.",
     sebPrompt:
-      "Arbeite zwei Passagen aus den Verhandlungsszenen heraus und zeige, wie das Stück Verantwortung konkretisiert und zugleich zersplittert."
+      "Zeige an zwei Passagen, wie das Stück Verhandlungsszenen und Verzweiflung montiert, um politische Ohnmacht sichtbar zu machen."
   },
   {
-    id: "lesson-rueckweg",
-    title: "Lektion 5 · Rückweg, Schluss und Erinnerung",
+    id: "lesson-09-diplomatie-blockade",
+    title: "Lektion 9 · Deals, Unterlassung und Blockade",
     summary:
-      "Letzte Handlungsoptionen, begrenzte Rettung und das epische Nachleben der Geschichte.",
-    moduleIds: ["rueckweg"],
-    reviewFocus: "Begründe am Wortlaut, wie das Ende moralische, politische und erinnerungskulturelle Fragen offen hält.",
+      "Humanität als Deal und Verantwortung als Kette des Nicht-Handelns.",
+    entryIds: ["diplomatie-3", "diplomatie-4", "rueckweg-1"],
+    moduleIds: ["diplomatie", "rueckweg"],
+    reviewFocus: "Arbeite an den Sprachformen der Verzögerung, des Dealens und der politischen Schuld durch Unterlassung.",
     sebPrompt:
-      "Formuliere eine belastbare Deutung des Schlusses und verbinde sie mit epischem Theater, historischer Verantwortung oder Kehlmanns Rede „Im Steinbruch“."
+      "Analysiere die politische Blockade im letzten Drittel des Dramas und zeige, wie Verantwortung immer weiter verschoben wird."
+  },
+  {
+    id: "lesson-10-rueckweg-erinnerung",
+    title: "Lektion 10 · Rückweg, Epilog und Erinnerung",
+    summary:
+      "Grenzen des Handelns, begrenzte Rettung und ein Schluss ohne Katharsis.",
+    entryIds: ["rueckweg-2", "rueckweg-3", "rueckweg-4"],
+    moduleIds: ["rueckweg"],
+    reviewFocus: "Begründe am Schlusswort und an den Nachgeschichten, wie das Stück Erinnerung politisch offen hält.",
+    sebPrompt:
+      "Formuliere eine belastbare Deutung des Endes und verbinde sie mit epischem Theater, dokumentarischer Form oder Kehlmanns Rede „Im Steinbruch“."
   }
 ];
 
 export const starterPrompt = {
   title: "Arbeitsauftrag",
   items: [
-    "Arbeite das Drama entlang des gesamten Textpfads im eingebetteten PDF durch und notiere Beobachtungen immer szenennah.",
+    "Arbeite das Drama entlang von zehn feineren Lektionen im eingebetteten PDF durch und notiere Beobachtungen immer szenennah.",
     "Sichere zuerst Wortlaut, Rollenrede, Regieanweisung oder Bühnenkonstellation, bevor du deutest.",
     "Nutze pro Passage mindestens eine Linse: historischer Kontext, Dokumentartheater, episches Theater, Dramengang oder Kehlmanns Sekundärtext.",
     "Halte im Revisionsfeld fest, welche Deutung du nach erneuter Lektüre schärfen oder gegenlesen willst."

@@ -38,6 +38,13 @@ const state = structuredClone(defaultState);
 let saveTimer = null;
 let feedbackTimer = null;
 let sebFeedbackRequestId = 0;
+const entryIndex = new Map();
+
+for (const module of readerModules) {
+  for (const entry of module.entries) {
+    entryIndex.set(entry.id, { module, entry });
+  }
+}
 
 function escapeHtml(value) {
   return String(value || "")
@@ -240,10 +247,40 @@ function currentLesson() {
   return availableLessons().find((lesson) => lesson.id === state.lessonId) || availableLessons()[0] || lessonSets[0];
 }
 
+function entriesForLesson(lesson = currentLesson()) {
+  if (Array.isArray(lesson?.entryIds) && lesson.entryIds.length) {
+    return lesson.entryIds
+      .map((entryId) => entryIndex.get(entryId)?.entry)
+      .filter(Boolean);
+  }
+
+  return (lesson?.moduleIds || [])
+    .flatMap((moduleId) => readerModules.find((module) => module.id === moduleId)?.entries || []);
+}
+
 function modulesForLesson(lesson = currentLesson()) {
-  return lesson.moduleIds
-    .map((moduleId) => readerModules.find((module) => module.id === moduleId))
-    .filter(Boolean);
+  const lessonEntries = entriesForLesson(lesson);
+  const modules = new Map();
+
+  for (const entry of lessonEntries) {
+    const meta = entryIndex.get(entry.id);
+    if (!meta) {
+      continue;
+    }
+
+    if (!modules.has(meta.module.id)) {
+      modules.set(meta.module.id, {
+        ...meta.module,
+        entries: []
+      });
+    }
+
+    modules.get(meta.module.id).entries.push(meta.entry);
+  }
+
+  return readerModules
+    .filter((module) => modules.has(module.id))
+    .map((module) => modules.get(module.id));
 }
 
 function currentModule() {
@@ -323,6 +360,20 @@ function progressForCurrentLesson() {
 
 function currentReviewAssignment() {
   return state.peerReview?.assignments?.find((assignment) => assignment.id === state.selectedReviewId) || state.peerReview?.assignments?.[0] || null;
+}
+
+function pageRangeForLesson(lesson = currentLesson()) {
+  const pageNumbers = entriesForLesson(lesson)
+    .map((entry) => Number(entry.pageNumber || 0))
+    .filter(Boolean);
+
+  if (!pageNumbers.length) {
+    return "";
+  }
+
+  const first = Math.min(...pageNumbers);
+  const last = Math.max(...pageNumbers);
+  return first === last ? `S. ${first}` : `S. ${first}-${last}`;
 }
 
 function transferPromptsFor(entry, theory) {
@@ -412,10 +463,11 @@ function renderSidebar() {
 function renderLessonRail() {
   return availableLessons().map((lesson) => {
     const progress = state.progress?.lessonProgress?.find((entry) => entry.id === lesson.id);
+    const entryCount = Array.isArray(lesson.entryIds) ? lesson.entryIds.length : lesson.moduleIds.length;
     return `
       <button class="lesson-pill ${lesson.id === state.lessonId ? "is-active" : ""}" data-action="select-lesson" data-lesson-id="${lesson.id}" ${mode === "seb" || config.forcedLessonId ? "disabled" : ""}>
         <span>${escapeHtml(lesson.title)}</span>
-        <small>${escapeHtml(progress ? `${progress.completedEntries}/${progress.totalEntries}` : `${lesson.moduleIds.length} Module`)}</small>
+        <small>${escapeHtml(progress ? `${progress.completedEntries}/${progress.totalEntries} Passagen` : `${entryCount} Passagen · ${pageRangeForLesson(lesson)}`)}</small>
       </button>
     `;
   }).join("");
@@ -438,14 +490,18 @@ function renderEntryTabs(module) {
   `).join("");
 }
 
-function renderPassageNavigator(module) {
-  return module.entries.map((entry) => `
+function renderPassageNavigator(lesson = currentLesson()) {
+  return entriesForLesson(lesson).map((entry) => {
+    const module = entryIndex.get(entry.id)?.module;
+    return `
     <button class="passage-card ${entry.id === state.entryId ? "is-active" : ""}" data-action="select-entry" data-entry-id="${entry.id}">
       <span class="passage-page">${escapeHtml(entry.pageHint)}</span>
       <strong>${escapeHtml(entry.passageLabel)}</strong>
+      <small>${escapeHtml(module?.title || "")}</small>
       <span>${escapeHtml(entry.prompts[0])}</span>
     </button>
-  `).join("");
+  `;
+  }).join("");
 }
 
 function renderSignalWords(entry) {
@@ -639,6 +695,7 @@ function renderSebFeedbackPanel() {
 }
 
 function renderPdfPanel(entry, module) {
+  const lesson = currentLesson();
   return `
     <article class="panel pdf-panel">
       <div class="panel-head">
@@ -648,6 +705,7 @@ function renderPdfPanel(entry, module) {
         </div>
         <div class="pdf-head-actions">
           <span class="status-badge">${escapeHtml(entry.pageHint)}</span>
+          <span class="status-badge">${escapeHtml(pageRangeForLesson(lesson))}</span>
           <a class="button secondary" href="${pdfUrlForEntry(entry)}" target="_blank" rel="noreferrer">PDF separat öffnen</a>
         </div>
       </div>
@@ -657,8 +715,13 @@ function renderPdfPanel(entry, module) {
         <p>${escapeHtml(module.briefing)}</p>
       </div>
 
+      <div class="lesson-passages-box">
+        <strong>Relevante Passagen dieser Lektion</strong>
+        <p>${escapeHtml(`${lesson.title} führt durch ${entriesForLesson(lesson).length} gezielt ausgewählte Passagen im Seitenkorridor ${pageRangeForLesson(lesson)}.`)}</p>
+      </div>
+
       <div class="passage-nav">
-        ${renderPassageNavigator(module)}
+        ${renderPassageNavigator(lesson)}
       </div>
 
       <div class="pdf-frame-wrap">
@@ -977,12 +1040,13 @@ function render() {
           <h1>Engmaschiges PDF-Lesetool für das gesamte Drama</h1>
           <p>
             ${mode === "seb"
-              ? "Diese SEB-Fassung arbeitet mit klaren Lektionen zu Exposition, Havanna, diplomatischer Blockade, Rückweg und Erinnerung. Die Passagen sind eng an Szenenbau, Geschichtsbezug und politische Verantwortung gebunden."
-              : "Das Drama ist vollständig integriert. Links steuerst du den Textpfad und die Theorie-Linsen, in der Mitte liest du die Passage im PDF, rechts verbindest du szenische Beobachtung, Theoriebezug, Überarbeitung und Peer Review."}
+              ? "Diese SEB-Fassung arbeitet jetzt mit zehn feineren Lektionen. Jede Lektion führt direkt zu den relevanten PDF-Passagen und bündelt historische, dramaturgische und erinnerungspolitische Schwerpunkte."
+              : "Das Drama ist vollständig integriert. Links steuerst du zehn engere Lektionssets und Theorie-Linsen, in der Mitte springst du direkt zu den relevanten PDF-Passagen, rechts verbindest du szenische Beobachtung, Theoriebezug, Überarbeitung und Peer Review."}
           </p>
         </div>
         <div class="hero-actions">
           <span class="status-badge">${escapeHtml(modeLabel)}</span>
+          <span class="status-badge">10 Lektionen</span>
           <span class="status-badge">${escapeHtml(lesson.reviewFocus)}</span>
           ${mode === "open" ? '<a class="button secondary" href="/auth/logout">Abmelden</a>' : ""}
         </div>
@@ -1010,6 +1074,7 @@ function render() {
             <div class="sidebar-task">
               <strong>${escapeHtml(lesson.title)}</strong>
               <p>${escapeHtml(mode === "seb" ? lesson.sebPrompt : lesson.summary)}</p>
+              <p>${escapeHtml(`Seitenkorridor: ${pageRangeForLesson(lesson)} · ${entriesForLesson(lesson).length} Passagen`)}</p>
             </div>
           </section>
 
@@ -1214,6 +1279,7 @@ document.addEventListener("click", (event) => {
 
   if (action === "select-entry") {
     state.entryId = target.dataset.entryId;
+    state.moduleId = entryIndex.get(target.dataset.entryId)?.module.id || state.moduleId;
     ensureSelection();
     render();
     queueSave();

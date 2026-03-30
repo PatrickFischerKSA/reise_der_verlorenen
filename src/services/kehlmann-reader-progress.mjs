@@ -1,6 +1,9 @@
 import { lessonSets, readerModules } from "../../public/kehlmann-reader/data.js";
 
 const modulesById = new Map(readerModules.map((module) => [module.id, module]));
+const entryById = new Map(
+  readerModules.flatMap((module) => module.entries.map((entry) => [entry.id, { ...entry, moduleId: module.id }]))
+);
 
 function completed(note = {}) {
   return Boolean(
@@ -11,10 +14,20 @@ function completed(note = {}) {
 }
 
 function withLessonEntries(lesson) {
-  const entries = lesson.moduleIds.flatMap((moduleId) => modulesById.get(moduleId)?.entries || []);
+  const entries = Array.isArray(lesson.entryIds) && lesson.entryIds.length
+    ? lesson.entryIds.map((entryId) => entryById.get(entryId)).filter(Boolean)
+    : lesson.moduleIds.flatMap((moduleId) => modulesById.get(moduleId)?.entries || []);
+  const moduleCount = new Set(entries.map((entry) => entry.moduleId || lesson.moduleIds?.[0]).filter(Boolean)).size;
+  const pageNumbers = entries.map((entry) => Number(entry.pageNumber || 0)).filter(Boolean);
+
   return {
     ...lesson,
-    entries
+    entries,
+    moduleCount,
+    entryCount: entries.length,
+    pageRange: pageNumbers.length
+      ? `S. ${Math.min(...pageNumbers)}-${Math.max(...pageNumbers)}`
+      : ""
   };
 }
 
@@ -23,8 +36,9 @@ export function getLessonSetsWithCounts() {
     const material = withLessonEntries(lesson);
     return {
       ...lesson,
-      moduleCount: lesson.moduleIds.length,
-      entryCount: material.entries.length
+      moduleCount: material.moduleCount,
+      entryCount: material.entryCount,
+      pageRange: material.pageRange
     };
   });
 }

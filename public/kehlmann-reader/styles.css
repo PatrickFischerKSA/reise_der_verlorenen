@@ -252,6 +252,7 @@ button {
 
 .sidebar-task,
 .pdf-focus-box,
+.lesson-passages-box,
 .prompt-box,
 .writing-frame-box {
   border-left: 4px solid var(--accent);
@@ -273,6 +274,12 @@ button {
   font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.passage-card small {
+  color: var(--forest);
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
 .scene-panel,
@@ -495,6 +502,10 @@ textarea {
 .lesson-box {
   display: grid;
   gap: 12px;
+}
+
+.lesson-passages-box p {
+  margin: 0;
 }
 
 .signal-grid {

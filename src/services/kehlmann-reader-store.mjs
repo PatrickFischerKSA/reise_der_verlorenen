@@ -37,6 +37,11 @@ const defaultPeerReviewCriteria = [
   }
 ];
 
+const lessonCatalog = () => getLessonSetsWithCounts();
+const defaultLessonIds = () => lessonCatalog().map((lesson) => lesson.id);
+const defaultActiveLessonId = () => lessonCatalog().find((lesson) => lesson.id === "lesson-09-diplomatie-blockade")?.id || defaultLessonIds()[0];
+const defaultPeerReviewLessonId = () => lessonCatalog().find((lesson) => lesson.id === "lesson-07-hafen-blickszenen")?.id || defaultLessonIds()[0];
+
 let inMemoryReaderStore = null;
 
 function now() {
@@ -62,13 +67,13 @@ function defaultClassroom(timestamp) {
     id: "reader-class-9a",
     name: "Kehlmann 10A",
     code: "KEHL-10A",
-    lessonIds: getLessonSetsWithCounts().map((lesson) => lesson.id),
-    activeSebLessonId: "lesson-diplomatie",
+    lessonIds: defaultLessonIds(),
+    activeSebLessonId: defaultActiveLessonId(),
     allowOpen: true,
     allowSeb: true,
     peerReviewEnabled: true,
     requiredPeerReviews: 2,
-    peerReviewLessonId: "lesson-hafenkrise",
+    peerReviewLessonId: defaultPeerReviewLessonId(),
     peerReviewVisibility: "assigned-only",
     peerReviewInstructions:
       "Arbeite textnah, historisch verantwortungsbewusst und entwicklungsorientiert. Nenne mindestens eine Stärke, eine präzise Überarbeitung und eine Rückfrage zur Deutung oder Bühnenfunktion.",
@@ -88,6 +93,37 @@ function defaultReaderStore() {
   };
 }
 
+function normalizeClassroom(classroom) {
+  const validLessonIds = new Set(defaultLessonIds());
+  const normalizedLessonIds = Array.isArray(classroom.lessonIds)
+    ? classroom.lessonIds.filter((lessonId) => validLessonIds.has(lessonId))
+    : [];
+
+  classroom.lessonIds = normalizedLessonIds.length ? normalizedLessonIds : defaultLessonIds();
+
+  if (!validLessonIds.has(classroom.activeSebLessonId)) {
+    classroom.activeSebLessonId = defaultActiveLessonId();
+  }
+
+  if (!validLessonIds.has(classroom.peerReviewLessonId)) {
+    classroom.peerReviewLessonId = defaultPeerReviewLessonId();
+  }
+
+  if (!Array.isArray(classroom.peerReviewCriteria) || !classroom.peerReviewCriteria.length) {
+    classroom.peerReviewCriteria = structuredClone(defaultPeerReviewCriteria);
+  }
+
+  return classroom;
+}
+
+function normalizeReaderStore(store) {
+  store.classes = (store.classes || []).map((classroom) => normalizeClassroom(classroom));
+  store.students = Array.isArray(store.students) ? store.students : [];
+  store.work = Array.isArray(store.work) ? store.work : [];
+  store.reviews = Array.isArray(store.reviews) ? store.reviews : [];
+  return store;
+}
+
 async function ensureReaderStoreFile() {
   try {
     await fs.access(readerStorePath);
@@ -104,7 +140,7 @@ export async function readReaderStore() {
 
   await ensureReaderStoreFile();
   const raw = await fs.readFile(readerStorePath, "utf8");
-  inMemoryReaderStore = JSON.parse(raw);
+  inMemoryReaderStore = normalizeReaderStore(JSON.parse(raw));
   return structuredClone(inMemoryReaderStore);
 }
 
