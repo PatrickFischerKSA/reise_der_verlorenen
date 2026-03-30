@@ -18,6 +18,7 @@ const STUDENT_COOKIE = "kehlmann_reader_student";
 const CLASS_COOKIE = "kehlmann_reader_class";
 const TEACHER_COOKIE = "kehlmann_teacher_access";
 const SEB_CONFIG_KEY_HASH = process.env.SEB_CONFIG_KEY_HASH || process.env.KEHLMANN_SEB_CONFIG_KEY_HASH || "";
+const READER_PDF_SOURCE = "/reader/assets/die-reise-der-verlorenen.pdf";
 
 function renderShellPage({ title, body, bodyClass = "" }) {
   return `
@@ -129,6 +130,71 @@ function renderShellPage({ title, body, bodyClass = "" }) {
             margin: 0;
             padding-left: 18px;
           }
+          .teacher-entry-layout {
+            display: grid;
+            gap: 20px;
+            grid-template-columns: minmax(280px, 0.38fr) minmax(0, 1fr);
+          }
+          .teacher-entry-sidebar,
+          .teacher-entry-viewer,
+          .teacher-entry-passage-list {
+            display: grid;
+            gap: 12px;
+          }
+          .lesson-nav-card,
+          .passage-nav-card {
+            display: grid;
+            gap: 8px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 14px;
+            background: rgba(255,255,255,0.72);
+            text-decoration: none;
+            color: var(--text);
+          }
+          .lesson-nav-card.is-active,
+          .passage-nav-card.is-active {
+            border-color: rgba(180, 92, 57, 0.45);
+            background: rgba(180, 92, 57, 0.1);
+          }
+          .meta-grid {
+            display: grid;
+            gap: 12px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          }
+          .meta-card {
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 14px;
+            background: rgba(255,255,255,0.74);
+          }
+          .iframe-shell {
+            min-height: 72vh;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.72);
+          }
+          .iframe-shell iframe {
+            width: 100%;
+            min-height: 72vh;
+            border: none;
+          }
+          .prompt-panel {
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 16px;
+            background: rgba(255,255,255,0.74);
+          }
+          @media (max-width: 960px) {
+            .teacher-entry-layout {
+              grid-template-columns: 1fr;
+            }
+            .iframe-shell,
+            .iframe-shell iframe {
+              min-height: 58vh;
+            }
+          }
         </style>
       </head>
       <body class="${bodyClass}">
@@ -191,48 +257,101 @@ function pageRangeForLesson(lesson) {
   return first === last ? `S. ${first}` : `S. ${first}-${last}`;
 }
 
-function renderTeacherEntryPage() {
+function teacherEntryLessons() {
   const lessons = getLessonSetsWithCounts();
+  return lessons.map((lesson) => ({
+    ...lesson,
+    pageRange: pageRangeForLesson(lesson),
+    entries: getEntriesForLesson(lesson.id)
+  }));
+}
+
+function renderTeacherEntryPage({ lessonId, entryId } = {}) {
+  const lessons = teacherEntryLessons();
+  const currentLesson = lessons.find((lesson) => lesson.id === lessonId) || lessons[0];
+  const currentEntry = currentLesson.entries.find((entry) => entry.id === entryId) || currentLesson.entries[0];
+  const pdfUrl = `${READER_PDF_SOURCE}#page=${currentEntry?.pageNumber || 1}&zoom=page-width`;
 
   return renderShellPage({
     title: "Lehrereingang · Die Reise der Verlorenen",
     body: `
       <main class="page">
         <section class="panel">
-          <div class="eyebrow">Offener Lehrereingang</div>
+          <div class="eyebrow">Lehrereingang</div>
           <h1>Alle Aufgaben direkt sehen</h1>
           <p>
-            Diese Übersicht ist bewusst ohne Passwort zugänglich. Sie zeigt alle Lektionen, die zugehörigen Passagen,
-            Fokusfragen, Seitenkorridore und Arbeitsaufträge direkt, ohne dass zuerst ein Zugang freigeschaltet werden muss.
+            Diese Übersicht ist mit demselben Passwort wie das Lehrkraft-Dashboard geschützt. Sie zeigt alle Lektionen,
+            die zugehörigen Passagen, Fokusfragen, Seitenkorridore und Arbeitsaufträge direkt, ohne dass zuerst ein
+            Klassen-Code oder ein Schülerzugang freigeschaltet werden muss.
           </p>
           <div class="row">
             <a class="button" href="/">Zur Startseite</a>
             <a class="button secondary" href="/teacher">Zum geschützten Dashboard</a>
+            <a class="button secondary" href="/open/lesson/${currentLesson.id}">Diese Lektion im Reader öffnen</a>
           </div>
         </section>
 
-        ${lessons.map((lesson) => `
-          <section class="panel">
-            <div class="eyebrow">${lesson.title}</div>
-            <h2>${lesson.summary}</h2>
-            <p><strong>Review-Fokus:</strong> ${lesson.reviewFocus}</p>
-            <p><strong>SEB-Arbeitsauftrag:</strong> ${lesson.sebPrompt}</p>
-            <p><strong>Seitenkorridor:</strong> ${pageRangeForLesson(lesson)} · <strong>Passagen:</strong> ${lesson.entryCount}</p>
-            <div class="row">
-              <a class="button secondary" href="/open/lesson/${lesson.id}">Open-Zugang mit Lektion</a>
-              <a class="button secondary" href="/seb/lesson/${lesson.id}">SEB-Zugang mit Lektion</a>
+        <section class="teacher-entry-layout">
+          <aside class="panel teacher-entry-sidebar">
+            <div>
+              <div class="eyebrow">Lektionen</div>
+              <h2>Direkter Aufgabenüberblick</h2>
             </div>
-            <ul class="small-list">
-              ${getEntriesForLesson(lesson.id).map((entry) => `
-                <li>
-                  <strong>${entry.title}</strong> (${entry.pageHint})<br>
-                  ${entry.passageLabel}<br>
-                  ${entry.prompts.map((prompt, index) => `${index + 1}. ${prompt}`).join("<br>")}
-                </li>
+            ${lessons.map((lesson) => `
+              <a class="lesson-nav-card ${lesson.id === currentLesson.id ? "is-active" : ""}" href="/teacher-entry?lesson=${lesson.id}">
+                <strong>${lesson.title}</strong>
+                <span>${lesson.summary}</span>
+                <span>${lesson.pageRange} · ${lesson.entryCount} Passagen</span>
+              </a>
+            `).join("")}
+          </aside>
+
+          <section class="panel teacher-entry-viewer">
+            <div>
+              <div class="eyebrow">${currentLesson.title}</div>
+              <h2>${currentLesson.summary}</h2>
+            </div>
+
+            <div class="meta-grid">
+              <div class="meta-card">
+                <strong>Review-Fokus</strong>
+                <p>${currentLesson.reviewFocus}</p>
+              </div>
+              <div class="meta-card">
+                <strong>SEB-Arbeitsauftrag</strong>
+                <p>${currentLesson.sebPrompt}</p>
+              </div>
+              <div class="meta-card">
+                <strong>Seitenkorridor</strong>
+                <p>${currentLesson.pageRange}</p>
+              </div>
+            </div>
+
+            <div class="teacher-entry-passage-list">
+              <div class="eyebrow">Passagen dieser Lektion</div>
+              ${currentLesson.entries.map((entry) => `
+                <a class="passage-nav-card ${entry.id === currentEntry.id ? "is-active" : ""}" href="/teacher-entry?lesson=${currentLesson.id}&entry=${entry.id}">
+                  <strong>${entry.title}</strong>
+                  <span>${entry.pageHint} · ${entry.passageLabel}</span>
+                </a>
               `).join("")}
-            </ul>
+            </div>
+
+            <div class="prompt-panel">
+              <div class="eyebrow">Aktuelle Passage</div>
+              <h2>${currentEntry.title}</h2>
+              <p><strong>${currentEntry.pageHint}</strong> · ${currentEntry.passageLabel}</p>
+              <p>${currentEntry.context}</p>
+              <ul class="small-list">
+                ${currentEntry.prompts.map((prompt) => `<li>${prompt}</li>`).join("")}
+              </ul>
+            </div>
+
+            <div class="iframe-shell">
+              <iframe src="${pdfUrl}" title="Die Reise der Verlorenen PDF"></iframe>
+            </div>
           </section>
-        `).join("")}
+        </section>
       </main>
     `
   });
@@ -437,7 +556,10 @@ export function createApp() {
       return;
     }
 
-    response.send(renderTeacherEntryPage());
+    response.send(renderTeacherEntryPage({
+      lessonId: request.query.lesson,
+      entryId: request.query.entry
+    }));
   });
 
   app.post("/auth/open", async (request, response) => {
