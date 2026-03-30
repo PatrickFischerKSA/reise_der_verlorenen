@@ -293,7 +293,11 @@ function currentEntry() {
 }
 
 function theoryIdsFor(module = currentModule(), entry = currentEntry()) {
-  const ids = [...(module?.relatedTheoryIds || []), ...(entry?.relatedTheoryIds || [])];
+  const ids = [
+    ...(currentLesson()?.recommendedTheoryIds || []),
+    ...(module?.relatedTheoryIds || []),
+    ...(entry?.relatedTheoryIds || [])
+  ];
   return [...new Set(ids)].filter((id) => theoryResources.some((resource) => resource.id === id));
 }
 
@@ -333,6 +337,22 @@ function ensureSelection() {
 function currentTheory() {
   const options = theoryOptionsFor();
   return options.find((resource) => resource.id === state.theoryId) || options[0] || theoryResources[0];
+}
+
+function resourceAssignmentsForLesson(lesson = currentLesson()) {
+  return (lesson?.resourceAssignments || [])
+    .map((assignment) => {
+      const resource = theoryResources.find((entry) => entry.id === assignment.resourceId);
+      if (!resource) {
+        return null;
+      }
+
+      return {
+        ...assignment,
+        resource
+      };
+    })
+    .filter(Boolean);
 }
 
 function noteForEntry(entryId) {
@@ -805,6 +825,65 @@ function renderTheoryPanel(module, entry) {
   `;
 }
 
+function renderResourceAssignmentsPanel() {
+  const assignments = resourceAssignmentsForLesson();
+  if (!assignments.length) {
+    return "";
+  }
+
+  return `
+    <article class="panel resource-assignment-panel">
+      <div class="panel-head">
+        <div>
+          <div class="eyebrow">Ressourcen-Aufträge</div>
+          <h2>Podcast, Sekundärtext und Theorie als Arbeitsstationen</h2>
+        </div>
+      </div>
+
+      <div class="resource-assignment-grid">
+        ${assignments.map(({ resource, title, summary, task, questions }) => `
+          <section class="resource-assignment-card">
+            <div class="panel-head">
+              <div>
+                <div class="eyebrow">${escapeHtml(resource.sourceTitle)}</div>
+                <h3>${escapeHtml(title)}</h3>
+              </div>
+              <a class="button secondary" href="${escapeHtml(resource.openUrl)}" target="_blank" rel="noreferrer">${resource.mediaType === "pdf" ? "PDF extern öffnen" : "Medium extern öffnen"}</a>
+            </div>
+
+            <p>${escapeHtml(summary)}</p>
+
+            <div class="resource-task-box">
+              <strong>Konkreter Arbeitsauftrag</strong>
+              <p>${escapeHtml(task)}</p>
+            </div>
+
+            <div class="theory-grid">
+              <div class="theory-card">
+                <strong>Leitfragen zur Ressource</strong>
+                <ul class="question-list">
+                  ${questions.map((question) => `<li>${escapeHtml(question)}</li>`).join("")}
+                </ul>
+              </div>
+              <div class="theory-card">
+                <strong>Warum diese Ressource hier wichtig ist</strong>
+                <p>${escapeHtml(resource.summary)}</p>
+              </div>
+            </div>
+
+            <div class="video-card">
+              ${resource.mediaType === "pdf"
+                ? `<div class="pdf-frame-wrap"><iframe class="pdf-frame" src="${escapeHtml(resource.embedUrl)}#page=1&zoom=page-width" title="${escapeHtml(resource.title)}"></iframe></div>`
+                : `<div class="video-wrap"><video class="theory-video" controls preload="metadata"><source src="${escapeHtml(resource.embedUrl)}" type="video/mp4"></video></div>`
+              }
+            </div>
+          </section>
+        `).join("")}
+      </div>
+    </article>
+  `;
+}
+
 function renderReviewList() {
   return state.peerReview.assignments.map((assignment) => `
     <button class="review-pill ${assignment.id === state.selectedReviewId ? "is-active" : ""}" data-action="select-review" data-review-id="${assignment.id}">
@@ -1154,6 +1233,7 @@ function render() {
           </article>
 
           ${renderTheoryPanel(module, entry)}
+          ${renderResourceAssignmentsPanel()}
           ${renderNotebook(entry)}
           ${renderSebFeedbackPanel()}
           ${renderPeerReviewPanel()}

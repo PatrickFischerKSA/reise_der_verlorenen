@@ -286,6 +286,7 @@ button {
 .notebook,
 .pdf-panel,
 .theory-panel,
+.resource-assignment-panel,
 .review-panel,
 .seb-feedback-panel {
   display: grid;
@@ -296,6 +297,7 @@ button {
 .theory-card,
 .theory-summary,
 .video-card,
+.resource-assignment-card,
 .criterion-card,
 .seb-profile-card,
 .seb-feedback-card,
@@ -336,6 +338,11 @@ button {
 .feedback-columns {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.resource-assignment-grid {
+  display: grid;
   gap: 18px;
 }
 
@@ -450,6 +457,13 @@ textarea {
   padding: 18px;
   background: rgba(49, 67, 53, 0.08);
   border: 1px solid rgba(49, 67, 53, 0.12);
+}
+
+.resource-task-box {
+  border-left: 4px solid var(--accent);
+  padding: 14px;
+  border-radius: 0 16px 16px 0;
+  background: rgba(180, 92, 57, 0.1);
 }
 
 .feedback-box ul {

@@ -777,7 +777,23 @@ export const lessonSets = [
     moduleIds: ["rueckweg"],
     reviewFocus: "Begründe am Schlusswort und an den Nachgeschichten, wie das Stück Erinnerung politisch offen hält.",
     sebPrompt:
-      "Formuliere eine belastbare Deutung des Endes und verbinde sie mit epischem Theater, dokumentarischer Form oder Kehlmanns Rede „Im Steinbruch“."
+      "Formuliere eine belastbare Deutung des Endes und verbinde sie mit epischem Theater, dokumentarischer Form oder Kehlmanns Rede „Im Steinbruch“.",
+    recommendedTheoryIds: ["im-steinbruch", "episches-theater", "dokumentartheater"],
+    resourceAssignments: [
+      {
+        resourceId: "im-steinbruch",
+        title: "Sekundärtext-Auftrag: Erinnerung als Gegenwartsfrage",
+        summary:
+          "Lies Kehlmanns Rede parallel zum Schluss des Dramas und prüfe, wie Erinnerung dort nicht beruhigt, sondern politisch offen gehalten wird.",
+        task:
+          "Verbinde die letzten Szenen des Dramas mit Kehlmanns Überlegungen aus „Im Steinbruch“. Zeige, wie aus Nachgeschichte, Namen und Überlebensspuren eine Form von Erinnerung entsteht, die Verantwortung nicht abschließt.",
+        questions: [
+          "Welche Aussagen aus „Im Steinbruch“ helfen dir, den offenen Schluss als bewusste ethische Form zu verstehen?",
+          "Wo widersetzt sich das Drama einer versöhnlichen Abrundung und hält stattdessen historische Unruhe fest?",
+          "Wie verändert der Sekundärtext deine Deutung der letzten Passagen im Hinblick auf Gegenwart und Verantwortung?"
+        ]
+      }
+    ]
   },
   {
     id: "lesson-11-kehlmann-haltung",
@@ -788,7 +804,36 @@ export const lessonSets = [
     moduleIds: ["havanna", "diplomatie", "rueckweg"],
     reviewFocus: "Arbeite daran, wie Kehlmann historische Stoffbearbeitung, ethische Verantwortung und persönliche Haltung im Drama lesbar macht.",
     sebPrompt:
-      "Beziehe die Passagen ausdrücklich auf Kehlmanns Aussagen aus dem Interview und aus „Im Steinbruch“. Zeige, wie sein Zugang zu Geschichte, Kunst und Gegenwart das Drama prägt."
+      "Beziehe die Passagen ausdrücklich auf Kehlmanns Aussagen aus dem Interview und aus „Im Steinbruch“. Zeige, wie sein Zugang zu Geschichte, Kunst und Gegenwart das Drama prägt.",
+    recommendedTheoryIds: ["gute-geschichte", "im-steinbruch", "werkueberblick"],
+    resourceAssignments: [
+      {
+        resourceId: "gute-geschichte",
+        title: "Podcast-Auftrag: Verdichtung und Verantwortung",
+        summary:
+          "Der Podcast wird hier nicht ergänzend, sondern als Deutungsschlüssel genutzt: Wie spricht Kehlmann über Erzählen, Auswahl und Formung von Wirklichkeit?",
+        task:
+          "Arbeite mit dem Podcast wie mit einem Sekundärtext zur Werkpoetik. Zeige an den ausgewählten Szenen, wie Kehlmann historische Wirklichkeit dramatisch verdichtet, ohne sie in bloße Nacherzählung oder Sensation zu verwandeln.",
+        questions: [
+          "Welche Aussagen Kehlmanns über gute Geschichten helfen dir, den Szenenbau des Dramas genauer zu verstehen?",
+          "Wo wird sichtbar, dass das Drama auswählt, rhythmisiert und zuspitzt, um Verantwortung lesbar zu machen?",
+          "Wie verhindert die Form des Stücks, dass der historische Stoff bloß illustriert oder emotional konsumierbar wird?"
+        ]
+      },
+      {
+        resourceId: "im-steinbruch",
+        title: "Sekundärtext-Auftrag: Haltung, Erinnerung und Gegenwart",
+        summary:
+          "„Im Steinbruch“ macht Kehlmanns persönliche Position zu Kunst, Gedenken und politischer Gegenwart sichtbar und soll direkt mitgelesen werden.",
+        task:
+          "Vergleiche die Rede mit den Passagen der Lektion. Arbeite heraus, wie Kehlmann Erinnerung nicht museal denkt, sondern als gegenwärtige Zumutung und ethische Verpflichtung.",
+        questions: [
+          "Welche Begriffe oder Gedanken aus „Im Steinbruch“ kehren im Drama als Haltung des Autors wieder?",
+          "Wie verbinden sich im Stück historische Fakten, poetische Form und gegenwärtige Verantwortung?",
+          "An welchen Stellen wird deutlich, dass Kehlmann persönliche Involvierung nicht sentimental, sondern analytisch und politisch gestaltet?"
+        ]
+      }
+    ]
   },
   {
     id: "lesson-12-theaterformen",
@@ -799,7 +844,49 @@ export const lessonSets = [
     moduleIds: ["abfahrt", "zwischenraum", "havanna", "diplomatie", "rueckweg"],
     reviewFocus: "Vergleiche genau, wo das Stück dokumentarisch arbeitet und wo es epische Distanz, Kommentar und Verfremdung erzeugt.",
     sebPrompt:
-      "Ordne die ausgewählten Passagen systematisch epischem Theater und Dokumentartheater zu. Zeige am Wortlaut, an der Figurenführung und an der Zuschaueradressierung, welche Verfahren dominieren."
+      "Ordne die ausgewählten Passagen systematisch epischem Theater und Dokumentartheater zu. Zeige am Wortlaut, an der Figurenführung und an der Zuschaueradressierung, welche Verfahren dominieren.",
+    recommendedTheoryIds: ["dokumentartheater", "episches-theater", "im-steinbruch"],
+    resourceAssignments: [
+      {
+        resourceId: "dokumentartheater",
+        title: "Theorie-Auftrag: Dokumentartheater",
+        summary:
+          "Das Video dient hier als Analysefolie dafür, wie historische Faktizität, reale Personen und protokollnahe Sprache auf der Bühne wirksam werden.",
+        task:
+          "Ordne die ausgewählten Passagen gezielt dokumentarischen Verfahren zu. Zeige, wo das Stück historische Realität ausstellt, statt sie in rein private Fiktion aufzulösen.",
+        questions: [
+          "Welche Szenen wirken wie historisch belegte Konstellationen, Berichte oder Akten auf der Bühne?",
+          "Wie arbeitet das Drama mit Authentizität, ohne bloß dokumentarisch trocken zu werden?",
+          "Wo wird sichtbar, dass Figuren auch Träger historischer Aussagen und Strukturen sind?"
+        ]
+      },
+      {
+        resourceId: "episches-theater",
+        title: "Theorie-Auftrag: Episches Theater",
+        summary:
+          "Das Video wird hier als konkrete Vergleichsfolie für Verfremdung, Kommentar und politische Zuschaueradressierung verwendet.",
+        task:
+          "Prüfe an denselben Passagen, wo das Drama episch arbeitet: also Distanz erzeugt, kommentiert, montiert und das Publikum zum Urteil zwingt.",
+        questions: [
+          "Welche Verfahren verhindern bloßes Mitleiden und verschieben die Wahrnehmung in Richtung Analyse?",
+          "Wo erzeugt das Stück Distanz statt psychologischer Verschmelzung?",
+          "Wie helfen Montage, direkte Redeformen oder Perspektivwechsel dabei, politische Strukturen sichtbar zu machen?"
+        ]
+      },
+      {
+        resourceId: "im-steinbruch",
+        title: "Transfer-Auftrag: Warum diese Form politisch notwendig ist",
+        summary:
+          "Mit Kehlmanns Rede lässt sich fragen, warum gerade dokumentarische und epische Mittel für diesen Stoff angemessen sind.",
+        task:
+          "Verbinde die beiden Theatermodelle mit Kehlmanns Rede. Zeige, weshalb diese Form des Erinnerns und Darstellens für einen Stoff wie die St. Louis nicht ästhetisch neutral sein kann.",
+        questions: [
+          "Wie stützt „Im Steinbruch“ die Wahl einer Form, die Distanz, Schärfe und politische Offenheit erzeugt?",
+          "Warum wäre ein rein geschlossenes, versöhnliches Drama für diesen Stoff problematisch?",
+          "Wie hängen Theaterform und ethischer Anspruch des Stücks zusammen?"
+        ]
+      }
+    ]
   }
 ];
 

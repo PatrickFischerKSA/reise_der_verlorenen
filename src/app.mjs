@@ -1,6 +1,7 @@
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { theoryResources } from "../public/kehlmann-reader/data.js";
 import { kehlmannReaderApiRouter } from "./routes/kehlmann-reader-api.mjs";
 import { hasOpenAccess, isSafeExamBrowserRequest, parseCookies } from "./services/access.mjs";
 import { getEntriesForLesson, getLessonSetById, getLessonSetsWithCounts } from "./services/kehlmann-reader-progress.mjs";
@@ -141,8 +142,14 @@ function renderShellPage({ title, body, bodyClass = "" }) {
             display: grid;
             gap: 12px;
           }
+          .teacher-entry-resource-list {
+            display: grid;
+            gap: 12px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          }
           .lesson-nav-card,
-          .passage-nav-card {
+          .passage-nav-card,
+          .resource-nav-card {
             display: grid;
             gap: 8px;
             border: 1px solid var(--border);
@@ -153,7 +160,8 @@ function renderShellPage({ title, body, bodyClass = "" }) {
             color: var(--text);
           }
           .lesson-nav-card.is-active,
-          .passage-nav-card.is-active {
+          .passage-nav-card.is-active,
+          .resource-nav-card.is-active {
             border-color: rgba(180, 92, 57, 0.45);
             background: rgba(180, 92, 57, 0.1);
           }
@@ -185,6 +193,10 @@ function renderShellPage({ title, body, bodyClass = "" }) {
             border-radius: 18px;
             padding: 16px;
             background: rgba(255,255,255,0.74);
+          }
+          .resource-panel {
+            display: grid;
+            gap: 14px;
           }
           @media (max-width: 960px) {
             .teacher-entry-layout {
@@ -266,11 +278,48 @@ function teacherEntryLessons() {
   }));
 }
 
+function resourcesForLesson(lesson) {
+  const assignmentIds = Array.isArray(lesson?.resourceAssignments)
+    ? lesson.resourceAssignments.map((assignment) => assignment.resourceId)
+    : [];
+  const ids = assignmentIds.length
+    ? assignmentIds
+    : (Array.isArray(lesson?.recommendedTheoryIds) ? lesson.recommendedTheoryIds : []);
+
+  return ids
+    .map((resourceId) => {
+      const resource = theoryResources.find((entry) => entry.id === resourceId);
+      if (!resource) {
+        return null;
+      }
+
+      const assignment = lesson.resourceAssignments?.find((entry) => entry.resourceId === resourceId);
+      return {
+        resource,
+        assignment
+      };
+    })
+    .filter(Boolean);
+}
+
 function renderTeacherEntryPage({ lessonId, entryId } = {}) {
   const lessons = teacherEntryLessons();
   const currentLesson = lessons.find((lesson) => lesson.id === lessonId) || lessons[0];
   const currentEntry = currentLesson.entries.find((entry) => entry.id === entryId) || currentLesson.entries[0];
   const pdfUrl = `${READER_PDF_SOURCE}#page=${currentEntry?.pageNumber || 1}&zoom=page-width`;
+  const lessonResources = resourcesForLesson(currentLesson);
+  const selectedResource = lessonResources[0] || null;
+  const selectedResourceMarkup = selectedResource
+    ? selectedResource.resource.mediaType === "pdf"
+      ? `<div class="iframe-shell"><iframe src="${selectedResource.resource.embedUrl}#page=1&zoom=page-width" title="${selectedResource.resource.title}"></iframe></div>`
+      : `
+        <div class="prompt-panel">
+          <video controls preload="metadata" style="width:100%; border-radius:16px; background:#000;">
+            <source src="${selectedResource.resource.embedUrl}" type="video/mp4">
+          </video>
+        </div>
+      `
+    : "";
 
   return renderShellPage({
     title: "Lehrereingang · Die Reise der Verlorenen",
@@ -350,6 +399,34 @@ function renderTeacherEntryPage({ lessonId, entryId } = {}) {
             <div class="iframe-shell">
               <iframe src="${pdfUrl}" title="Die Reise der Verlorenen PDF"></iframe>
             </div>
+
+            ${lessonResources.length ? `
+              <section class="resource-panel">
+                <div>
+                  <div class="eyebrow">Pflichtressourcen dieser Lektion</div>
+                  <h2>Podcast, Sekundärtext und Theorie integriert</h2>
+                </div>
+                <div class="teacher-entry-resource-list">
+                  ${lessonResources.map(({ resource, assignment }) => `
+                    <article class="resource-nav-card ${resource.id === selectedResource?.resource?.id ? "is-active" : ""}">
+                      <strong>${assignment?.title || resource.title}</strong>
+                      <span>${resource.sourceTitle}</span>
+                      <span>${assignment?.summary || resource.summary}</span>
+                      ${assignment?.task ? `<p><strong>Auftrag:</strong> ${assignment.task}</p>` : ""}
+                      ${assignment?.questions?.length ? `
+                        <ul class="small-list">
+                          ${assignment.questions.map((question) => `<li>${question}</li>`).join("")}
+                        </ul>
+                      ` : ""}
+                      <div class="row">
+                        <a class="button secondary" href="${resource.openUrl}" target="_blank" rel="noreferrer">${resource.mediaType === "pdf" ? "PDF extern öffnen" : "Video extern öffnen"}</a>
+                      </div>
+                    </article>
+                  `).join("")}
+                </div>
+                ${selectedResourceMarkup}
+              </section>
+            ` : ""}
           </section>
         </section>
       </main>
