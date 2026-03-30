@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { kehlmannReaderApiRouter } from "./routes/kehlmann-reader-api.mjs";
 import { hasOpenAccess, isSafeExamBrowserRequest, parseCookies } from "./services/access.mjs";
-import { getLessonSetById, getLessonSetsWithCounts } from "./services/kehlmann-reader-progress.mjs";
+import { getEntriesForLesson, getLessonSetById, getLessonSetsWithCounts } from "./services/kehlmann-reader-progress.mjs";
 import { createOrResumeStudent, updateReaderStore } from "./services/kehlmann-reader-store.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -162,6 +162,7 @@ function renderLandingPage() {
           <div class="row">
             <a class="button" href="/open">Offene Version</a>
             <a class="button secondary" href="/seb">SEB-Version</a>
+            <a class="button secondary" href="/teacher-entry">Lehrereingang</a>
             <a class="button secondary" href="/teacher">Lehrkraft-Dashboard</a>
           </div>
         </section>
@@ -171,6 +172,67 @@ function renderLandingPage() {
             ${lessons.map((lesson) => `<li><strong>${lesson.title}:</strong> ${lesson.summary}</li>`).join("")}
           </ul>
         </section>
+      </main>
+    `
+  });
+}
+
+function pageRangeForLesson(lesson) {
+  const pageNumbers = getEntriesForLesson(lesson.id)
+    .map((entry) => Number(entry.pageNumber || 0))
+    .filter(Boolean);
+
+  if (!pageNumbers.length) {
+    return "-";
+  }
+
+  const first = Math.min(...pageNumbers);
+  const last = Math.max(...pageNumbers);
+  return first === last ? `S. ${first}` : `S. ${first}-${last}`;
+}
+
+function renderTeacherEntryPage() {
+  const lessons = getLessonSetsWithCounts();
+
+  return renderShellPage({
+    title: "Lehrereingang · Die Reise der Verlorenen",
+    body: `
+      <main class="page">
+        <section class="panel">
+          <div class="eyebrow">Offener Lehrereingang</div>
+          <h1>Alle Aufgaben direkt sehen</h1>
+          <p>
+            Diese Übersicht ist bewusst ohne Passwort zugänglich. Sie zeigt alle Lektionen, die zugehörigen Passagen,
+            Fokusfragen, Seitenkorridore und Arbeitsaufträge direkt, ohne dass zuerst ein Zugang freigeschaltet werden muss.
+          </p>
+          <div class="row">
+            <a class="button" href="/">Zur Startseite</a>
+            <a class="button secondary" href="/teacher">Zum geschützten Dashboard</a>
+          </div>
+        </section>
+
+        ${lessons.map((lesson) => `
+          <section class="panel">
+            <div class="eyebrow">${lesson.title}</div>
+            <h2>${lesson.summary}</h2>
+            <p><strong>Review-Fokus:</strong> ${lesson.reviewFocus}</p>
+            <p><strong>SEB-Arbeitsauftrag:</strong> ${lesson.sebPrompt}</p>
+            <p><strong>Seitenkorridor:</strong> ${pageRangeForLesson(lesson)} · <strong>Passagen:</strong> ${lesson.entryCount}</p>
+            <div class="row">
+              <a class="button secondary" href="/open/lesson/${lesson.id}">Open-Zugang mit Lektion</a>
+              <a class="button secondary" href="/seb/lesson/${lesson.id}">SEB-Zugang mit Lektion</a>
+            </div>
+            <ul class="small-list">
+              ${getEntriesForLesson(lesson.id).map((entry) => `
+                <li>
+                  <strong>${entry.title}</strong> (${entry.pageHint})<br>
+                  ${entry.passageLabel}<br>
+                  ${entry.prompts.map((prompt, index) => `${index + 1}. ${prompt}`).join("<br>")}
+                </li>
+              `).join("")}
+            </ul>
+          </section>
+        `).join("")}
       </main>
     `
   });
@@ -225,21 +287,31 @@ function renderStudentAccessPage({ mode, lessonId, errorText = "" }) {
   });
 }
 
-function renderTeacherLoginPage(errorText = "") {
+function normalizeTeacherRedirect(target) {
+  return target === "/teacher-entry" ? "/teacher-entry" : "/teacher";
+}
+
+function renderTeacherLoginPage(errorText = "", redirectTo = "/teacher") {
+  const safeRedirect = normalizeTeacherRedirect(redirectTo);
+  const isTeacherEntry = safeRedirect === "/teacher-entry";
   return renderShellPage({
-    title: "Lehrkraft-Dashboard · Die Reise der Verlorenen",
+    title: `${isTeacherEntry ? "Lehrereingang" : "Lehrkraft-Dashboard"} · Die Reise der Verlorenen`,
     body: `
       <main class="page">
         <section class="panel">
-          <div class="eyebrow">Lehrkraft-Dashboard</div>
-          <h1>Dashboard entsperren</h1>
-          <p>Die Lehrkraftansicht verwaltet Klassen-Codes, SEB-Lektionen, Peer Review und Lernfortschritte für diese eine Kehlmann-Einheit.</p>
+          <div class="eyebrow">${isTeacherEntry ? "Lehrereingang" : "Lehrkraft-Dashboard"}</div>
+          <h1>${isTeacherEntry ? "Lehrereingang entsperren" : "Dashboard entsperren"}</h1>
+          <p>${isTeacherEntry
+            ? "Der Lehrereingang zeigt alle Lektionen, Passagen und Fragen direkt, ist aber mit demselben Passwort wie das Lehrkraft-Dashboard geschützt."
+            : "Die Lehrkraftansicht verwaltet Klassen-Codes, SEB-Lektionen, Peer Review und Lernfortschritte für diese eine Kehlmann-Einheit."}</p>
           ${errorText ? `<div class="notice"><strong>Hinweis:</strong> ${errorText}</div>` : ""}
           <form method="post" action="/auth/teacher" class="form-grid">
+            <input type="hidden" name="redirectTo" value="${safeRedirect}">
             <label for="teacherPassword">Lehrkraft-Passwort</label>
             <input id="teacherPassword" name="password" type="password" autocomplete="current-password" placeholder="Passwort eingeben">
             <div class="row">
-              <button type="submit">Dashboard öffnen</button>
+              <button type="submit">${isTeacherEntry ? "Lehrereingang öffnen" : "Dashboard öffnen"}</button>
+              <a class="button secondary" href="${isTeacherEntry ? "/teacher" : "/teacher-entry"}">${isTeacherEntry ? "Zum Dashboard" : "Zum Lehrereingang"}</a>
               <a class="button secondary" href="/">Zur Übersicht</a>
             </div>
           </form>
@@ -359,6 +431,15 @@ export function createApp() {
     response.send(renderLandingPage());
   });
 
+  app.get("/teacher-entry", (request, response) => {
+    if (!hasTeacherAccess(request)) {
+      response.send(renderTeacherLoginPage("", "/teacher-entry"));
+      return;
+    }
+
+    response.send(renderTeacherEntryPage());
+  });
+
   app.post("/auth/open", async (request, response) => {
     const { password, classCode, displayName, lessonId } = request.body;
 
@@ -417,13 +498,14 @@ export function createApp() {
   });
 
   app.post("/auth/teacher", (request, response) => {
+    const redirectTo = normalizeTeacherRedirect(request.body.redirectTo);
     if (request.body.password !== TEACHER_PASSWORD) {
-      response.status(401).send(renderTeacherLoginPage("Das Lehrkraft-Passwort stimmt nicht."));
+      response.status(401).send(renderTeacherLoginPage("Das Lehrkraft-Passwort stimmt nicht.", redirectTo));
       return;
     }
 
     response.setHeader("Set-Cookie", `${TEACHER_COOKIE}=1; HttpOnly; Path=/; Max-Age=28800; SameSite=Lax`);
-    response.redirect(303, "/teacher");
+    response.redirect(303, redirectTo);
   });
 
   app.get("/auth/logout", (_request, response) => {
@@ -484,7 +566,7 @@ export function createApp() {
 
   app.get("/teacher", (request, response) => {
     if (!hasTeacherAccess(request)) {
-      response.send(renderTeacherLoginPage());
+      response.send(renderTeacherLoginPage("", "/teacher"));
       return;
     }
 
