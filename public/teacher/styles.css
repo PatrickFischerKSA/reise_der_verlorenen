@@ -110,7 +110,8 @@ button {
 .class-grid,
 .dashboard-grid,
 .student-grid,
-.lesson-link-grid {
+.lesson-link-grid,
+.criteria-help-grid {
   display: grid;
   gap: 16px;
 }
@@ -129,6 +130,10 @@ button {
 
 .lesson-link-grid {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.criteria-help-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .class-card {
@@ -151,13 +156,19 @@ button {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 12px 14px;
   font: inherit;
   background: rgba(255, 255, 255, 0.92);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 110px;
 }
 
 .toggle {
@@ -178,13 +189,19 @@ select {
 }
 
 .student-card,
-.lesson-link-card {
+.lesson-link-card,
+.criterion-help,
+.review-settings-box {
   border: 1px solid var(--border);
   border-radius: 22px;
   padding: 18px;
   background: rgba(255, 255, 255, 0.78);
   display: grid;
   gap: 12px;
+}
+
+.review-settings-box {
+  background: rgba(49, 67, 53, 0.05);
 }
 
 .student-head {
@@ -201,6 +218,12 @@ select {
   padding: 7px 11px;
   background: rgba(49, 67, 53, 0.1);
   color: var(--forest);
+}
+
+.metrics-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .lesson-progress-list {

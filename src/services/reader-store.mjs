@@ -2,13 +2,41 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { makeId } from "./store.mjs";
-import { getLessonSetsWithCounts, summarizeStudentWork } from "./reader-progress.mjs";
+import { getEntriesForLesson, getLessonSetsWithCounts, summarizeStudentWork } from "./reader-progress.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
 const dataDir = path.join(projectRoot, "data");
 const readerStorePath = path.join(dataDir, "reader-store.json");
+
+const defaultPeerReviewCriteria = [
+  {
+    id: "textnaehe",
+    label: "Textnähe",
+    prompt: "Arbeitet die Rückmeldung sichtbar an konkreten Stellen, Formulierungen oder Signalen des Textes?"
+  },
+  {
+    id: "belegarbeit",
+    label: "Belegarbeit",
+    prompt: "Sind Beobachtung und Deutung mit Wortlaut, Signalwörtern oder klaren Verweisen gestützt?"
+  },
+  {
+    id: "deutungsplausibilitaet",
+    label: "Deutungsplausibilität",
+    prompt: "Ist die Interpretation nachvollziehbar und über bloße Inhaltsangabe hinausgeführt?"
+  },
+  {
+    id: "sprachliche_klarheit",
+    label: "Sprachliche Klarheit",
+    prompt: "Ist die Formulierung präzise, verständlich und gut weiterbearbeitbar?"
+  },
+  {
+    id: "weiterarbeit",
+    label: "Weiterarbeit",
+    prompt: "Hilft das Feedback der anderen Person wirklich bei einer nächsten Überarbeitung?"
+  }
+];
 
 let inMemoryReaderStore = null;
 
@@ -24,24 +52,34 @@ function normalizeName(value = "") {
   return String(value).trim().replace(/\s+/g, " ");
 }
 
+function defaultClassroom(timestamp) {
+  return {
+    id: "reader-class-9a",
+    name: "Klasse 9A",
+    code: "THIEL-9A",
+    lessonIds: getLessonSetsWithCounts().map((lesson) => lesson.id),
+    activeSebLessonId: "lesson-gewalt",
+    allowOpen: true,
+    allowSeb: true,
+    peerReviewEnabled: true,
+    requiredPeerReviews: 2,
+    peerReviewLessonId: "lesson-lene",
+    peerReviewVisibility: "assigned-only",
+    peerReviewInstructions:
+      "Arbeite wertschätzend, textnah und entwicklungsorientiert. Nenne mindestens eine Stärke, eine präzise nächste Überarbeitung und eine Rückfrage.",
+    peerReviewCriteria: structuredClone(defaultPeerReviewCriteria),
+    createdAt: timestamp,
+    updatedAt: timestamp
+  };
+}
+
 function defaultReaderStore() {
   const timestamp = now();
   return {
-    classes: [
-      {
-        id: "reader-class-9a",
-        name: "Klasse 9A",
-        code: "THIEL-9A",
-        lessonIds: getLessonSetsWithCounts().map((lesson) => lesson.id),
-        activeSebLessonId: "lesson-gewalt",
-        allowOpen: true,
-        allowSeb: true,
-        createdAt: timestamp,
-        updatedAt: timestamp
-      }
-    ],
+    classes: [defaultClassroom(timestamp)],
     students: [],
-    work: []
+    work: [],
+    reviews: []
   };
 }
 
@@ -115,6 +153,213 @@ function createWork(studentId, classroom) {
     createdAt: timestamp,
     updatedAt: timestamp
   };
+}
+
+function classroomCriteria(classroom) {
+  return classroom.peerReviewCriteria?.length ? classroom.peerReviewCriteria : structuredClone(defaultPeerReviewCriteria);
+}
+
+function sortStudentsForClass(store, classId) {
+  return store.students
+    .filter((student) => student.classId === classId)
+    .sort((left, right) => left.displayName.localeCompare(right.displayName, "de"));
+}
+
+function reviewIdFor({ classId, lessonId, reviewerStudentId, revieweeStudentId }) {
+  return `review-${classId}-${lessonId}-${reviewerStudentId}-${revieweeStudentId}`;
+}
+
+function defaultReviewRecord({ classroom, reviewerStudentId, revieweeStudentId }) {
+  const lessonId = classroom.peerReviewLessonId;
+  return {
+    id: reviewIdFor({ classId: classroom.id, lessonId, reviewerStudentId, revieweeStudentId }),
+    classId: classroom.id,
+    lessonId,
+    reviewerStudentId,
+    revieweeStudentId,
+    status: "assigned",
+    criteria: classroomCriteria(classroom).map((criterion) => ({
+      id: criterion.id,
+      level: "",
+      comment: ""
+    })),
+    quotedEvidence: "",
+    strengths: "",
+    nextSteps: "",
+    question: "",
+    createdAt: "",
+    updatedAt: "",
+    submittedAt: ""
+  };
+}
+
+function findStoredReview(store, id) {
+  return store.reviews.find((review) => review.id === id) || null;
+}
+
+function buildLessonPortfolio(work, lessonId) {
+  const notes = work?.notes || {};
+  const entries = getEntriesForLesson(lessonId).map((entry) => {
+    const note = notes[entry.id] || {};
+    return {
+      id: entry.id,
+      title: entry.title,
+      pageHint: entry.pageHint,
+      passageLabel: entry.passageLabel,
+      prompts: entry.prompts,
+      observation: note.observation || "",
+      evidence: note.evidence || "",
+      interpretation: note.interpretation || "",
+      theory: note.theory || "",
+      revision: note.revision || "",
+      hasContent: Boolean(
+        String(note.observation || "").trim() ||
+        String(note.evidence || "").trim() ||
+        String(note.interpretation || "").trim() ||
+        String(note.theory || "").trim()
+      )
+    };
+  });
+
+  const visibleEntries = entries.filter((entry) => entry.hasContent);
+  return {
+    completedEntries: visibleEntries.length,
+    totalEntries: entries.length,
+    entries: visibleEntries
+  };
+}
+
+function assignmentPairsForClass(store, classroom) {
+  if (!classroom.peerReviewEnabled) {
+    return [];
+  }
+
+  const students = sortStudentsForClass(store, classroom.id);
+  if (students.length < 2) {
+    return [];
+  }
+
+  const count = Math.max(0, Math.min(Number(classroom.requiredPeerReviews) || 0, students.length - 1));
+  const lessonId = classroom.peerReviewLessonId || classroom.lessonIds[0];
+  const pairs = [];
+
+  for (let reviewerIndex = 0; reviewerIndex < students.length; reviewerIndex += 1) {
+    const reviewer = students[reviewerIndex];
+    for (let offset = 1; offset <= count; offset += 1) {
+      const reviewee = students[(reviewerIndex + offset) % students.length];
+      pairs.push({
+        reviewerStudentId: reviewer.id,
+        revieweeStudentId: reviewee.id,
+        lessonId,
+        id: reviewIdFor({
+          classId: classroom.id,
+          lessonId,
+          reviewerStudentId: reviewer.id,
+          revieweeStudentId: reviewee.id
+        })
+      });
+    }
+  }
+
+  return pairs;
+}
+
+function buildPeerReviewAssignment(store, classroom, pair) {
+  const reviewer = getStudent(store, pair.reviewerStudentId);
+  const reviewee = getStudent(store, pair.revieweeStudentId);
+  const revieweeWork = getStudentWork(store, pair.revieweeStudentId);
+  const storedReview = findStoredReview(store, pair.id);
+  const review = storedReview || defaultReviewRecord({
+    classroom,
+    reviewerStudentId: pair.reviewerStudentId,
+    revieweeStudentId: pair.revieweeStudentId
+  });
+
+  return {
+    id: pair.id,
+    classId: classroom.id,
+    lessonId: pair.lessonId,
+    reviewerStudentId: pair.reviewerStudentId,
+    revieweeStudentId: pair.revieweeStudentId,
+    status: review.status || "assigned",
+    criteria: review.criteria,
+    quotedEvidence: review.quotedEvidence || "",
+    strengths: review.strengths || "",
+    nextSteps: review.nextSteps || "",
+    question: review.question || "",
+    updatedAt: review.updatedAt || "",
+    submittedAt: review.submittedAt || "",
+    reviewer: reviewer ? { id: reviewer.id, displayName: reviewer.displayName } : null,
+    reviewee: reviewee && revieweeWork
+      ? {
+          id: reviewee.id,
+          displayName: reviewee.displayName,
+          lessonPortfolio: buildLessonPortfolio(revieweeWork, pair.lessonId),
+          selectedLessonId: revieweeWork.selectedLessonId,
+          updatedAt: revieweeWork.updatedAt
+        }
+      : null
+  };
+}
+
+function assignmentsForStudent(store, classroom, studentId) {
+  return assignmentPairsForClass(store, classroom)
+    .filter((pair) => pair.reviewerStudentId === studentId)
+    .map((pair) => buildPeerReviewAssignment(store, classroom, pair));
+}
+
+function reviewStatsForStudent(store, classroom, studentId) {
+  const assigned = assignmentsForStudent(store, classroom, studentId);
+  const received = assignmentPairsForClass(store, classroom)
+    .filter((pair) => pair.revieweeStudentId === studentId)
+    .map((pair) => buildPeerReviewAssignment(store, classroom, pair));
+
+  return {
+    assignedCount: assigned.length,
+    completedAssignedCount: assigned.filter((review) => review.status === "submitted").length,
+    receivedCount: received.length,
+    receivedCompletedCount: received.filter((review) => review.status === "submitted").length
+  };
+}
+
+function findAssignmentForReviewer(store, reviewerStudentId, reviewId) {
+  const reviewer = getStudent(store, reviewerStudentId);
+  const classroom = reviewer ? getClassroomById(store, reviewer.classId) : null;
+  if (!reviewer || !classroom) {
+    return null;
+  }
+
+  const assignment = assignmentsForStudent(store, classroom, reviewerStudentId)
+    .find((review) => review.id === reviewId);
+
+  if (!assignment) {
+    return null;
+  }
+
+  return { reviewer, classroom, assignment };
+}
+
+function validateSubmittedReview(record, criteria) {
+  const everyCriterionFilled = criteria.every((criterion) => {
+    const current = record.criteria.find((entry) => entry.id === criterion.id);
+    return current?.level;
+  });
+
+  if (!everyCriterionFilled) {
+    throw new Error("Für ein abgeschicktes Peer Review müssen alle Kriterien eingeschätzt werden.");
+  }
+
+  if (!String(record.strengths || "").trim()) {
+    throw new Error("Bitte benenne mindestens eine Stärke der besprochenen Arbeit.");
+  }
+
+  if (!String(record.nextSteps || "").trim()) {
+    throw new Error("Bitte formuliere mindestens einen konkreten nächsten Überarbeitungsschritt.");
+  }
+
+  if (!String(record.question || "").trim()) {
+    throw new Error("Bitte ergänze mindestens eine weiterführende Rückfrage.");
+  }
 }
 
 export function createOrResumeStudent(store, { classCode, displayName, mode, lessonId }) {
@@ -193,6 +438,54 @@ export function saveReaderProgress(store, studentId, payload) {
   return { classroom, student, work };
 }
 
+export function savePeerReview(store, reviewerStudentId, reviewId, payload) {
+  const resolved = findAssignmentForReviewer(store, reviewerStudentId, reviewId);
+  if (!resolved) {
+    throw new Error("Peer-Review-Zuweisung nicht gefunden.");
+  }
+
+  const { classroom, assignment } = resolved;
+  const criteriaConfig = classroomCriteria(classroom);
+  const timestamp = now();
+  let record = findStoredReview(store, reviewId);
+
+  if (!record) {
+    record = defaultReviewRecord({
+      classroom,
+      reviewerStudentId: assignment.reviewerStudentId,
+      revieweeStudentId: assignment.revieweeStudentId
+    });
+    record.createdAt = timestamp;
+    store.reviews.push(record);
+  }
+
+  record.criteria = criteriaConfig.map((criterion) => {
+    const current = payload.criteria?.find((entry) => entry.id === criterion.id)
+      || assignment.criteria.find((entry) => entry.id === criterion.id)
+      || { id: criterion.id, level: "", comment: "" };
+    return {
+      id: criterion.id,
+      level: String(current.level || ""),
+      comment: String(current.comment || "")
+    };
+  });
+  record.quotedEvidence = String(payload.quotedEvidence || "");
+  record.strengths = String(payload.strengths || "");
+  record.nextSteps = String(payload.nextSteps || "");
+  record.question = String(payload.question || "");
+  record.updatedAt = timestamp;
+
+  if (payload.status === "submitted") {
+    validateSubmittedReview(record, criteriaConfig);
+    record.status = "submitted";
+    record.submittedAt = timestamp;
+  } else {
+    record.status = "draft";
+  }
+
+  return buildPeerReviewAssignment(store, classroom, assignment);
+}
+
 export function buildReaderBootstrap(store, studentId) {
   const student = getStudent(store, studentId);
   const classroom = student ? getClassroomById(store, student.classId) : null;
@@ -206,7 +499,17 @@ export function buildReaderBootstrap(store, studentId) {
     student,
     classroom,
     work,
-    progress: summarizeStudentWork(student, classroom, work).progress
+    progress: summarizeStudentWork(student, classroom, work).progress,
+    peerReview: {
+      enabled: Boolean(classroom.peerReviewEnabled),
+      lessonId: classroom.peerReviewLessonId,
+      visibility: classroom.peerReviewVisibility || "assigned-only",
+      requiredPeerReviews: Number(classroom.requiredPeerReviews) || 0,
+      instructions: classroom.peerReviewInstructions || "",
+      criteria: classroomCriteria(classroom),
+      assignments: assignmentsForStudent(store, classroom, student.id),
+      stats: reviewStatsForStudent(store, classroom, student.id)
+    }
   };
 }
 
@@ -215,21 +518,39 @@ export function buildTeacherOverview(store) {
 
   return {
     lessons,
+    reviewCriteria: structuredClone(defaultPeerReviewCriteria),
     classes: store.classes.map((classroom) => {
       const students = store.students
         .filter((student) => student.classId === classroom.id)
-        .map((student) => summarizeStudentWork(student, classroom, getStudentWork(store, student.id)))
+        .map((student) => {
+          const summary = summarizeStudentWork(student, classroom, getStudentWork(store, student.id));
+          return {
+            ...summary,
+            peerReview: reviewStatsForStudent(store, classroom, student.id)
+          };
+        })
         .sort((left, right) => right.progress.percent - left.progress.percent);
 
       const averageProgress = students.length
         ? Math.round(students.reduce((sum, student) => sum + student.progress.percent, 0) / students.length)
         : 0;
 
+      const allAssignments = assignmentPairsForClass(store, classroom);
+      const completedReviews = allAssignments
+        .map((pair) => buildPeerReviewAssignment(store, classroom, pair))
+        .filter((review) => review.status === "submitted").length;
+
       return {
         ...classroom,
         studentCount: students.length,
         averageProgress,
-        students
+        students,
+        peerReviewSummary: {
+          enabled: Boolean(classroom.peerReviewEnabled),
+          totalAssignments: allAssignments.length,
+          completedReviews,
+          pendingReviews: Math.max(allAssignments.length - completedReviews, 0)
+        }
       };
     })
   };
@@ -243,15 +564,10 @@ export function createClassroom(store, { name }) {
 
   const timestamp = now();
   const classroom = {
+    ...defaultClassroom(timestamp),
     id: makeId("reader-class"),
     name: safeName,
-    code: randomCode(),
-    lessonIds: getLessonSetsWithCounts().map((lesson) => lesson.id),
-    activeSebLessonId: "lesson-gewalt",
-    allowOpen: true,
-    allowSeb: true,
-    createdAt: timestamp,
-    updatedAt: timestamp
+    code: randomCode()
   };
 
   store.classes.push(classroom);
@@ -282,6 +598,26 @@ export function updateClassroomSettings(store, classId, payload) {
 
   if (typeof payload.allowSeb === "boolean") {
     classroom.allowSeb = payload.allowSeb;
+  }
+
+  if (typeof payload.peerReviewEnabled === "boolean") {
+    classroom.peerReviewEnabled = payload.peerReviewEnabled;
+  }
+
+  if (payload.peerReviewLessonId && classroom.lessonIds.includes(payload.peerReviewLessonId)) {
+    classroom.peerReviewLessonId = payload.peerReviewLessonId;
+  }
+
+  if (typeof payload.requiredPeerReviews === "number") {
+    classroom.requiredPeerReviews = Math.max(0, Math.min(5, Math.round(payload.requiredPeerReviews)));
+  }
+
+  if (payload.peerReviewVisibility) {
+    classroom.peerReviewVisibility = payload.peerReviewVisibility;
+  }
+
+  if (typeof payload.peerReviewInstructions === "string") {
+    classroom.peerReviewInstructions = payload.peerReviewInstructions.trim();
   }
 
   classroom.updatedAt = now();

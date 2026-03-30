@@ -5,6 +5,7 @@ import {
   createClassroom,
   readReaderStore,
   regenerateClassroomCode,
+  savePeerReview,
   saveReaderProgress,
   updateClassroomSettings,
   updateReaderStore
@@ -52,6 +53,24 @@ readerApiRouter.post("/progress", async (request, response) => {
   try {
     const result = await updateReaderStore(async (store) => {
       saveReaderProgress(store, studentId, request.body);
+      return buildReaderBootstrap(store, studentId);
+    });
+
+    response.json(result);
+  } catch (error) {
+    badRequest(response, error.message);
+  }
+});
+
+readerApiRouter.post("/reviews/:reviewId", async (request, response) => {
+  const studentId = getStudentId(request);
+  if (!studentId) {
+    return badRequest(response, "Reader-Sitzung fehlt.", 401);
+  }
+
+  try {
+    const result = await updateReaderStore(async (store) => {
+      savePeerReview(store, studentId, request.params.reviewId, request.body);
       return buildReaderBootstrap(store, studentId);
     });
 

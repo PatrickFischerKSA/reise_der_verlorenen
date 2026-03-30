@@ -37,9 +37,9 @@ function currentClassroom() {
   return state.overview?.classes.find((entry) => entry.id === state.selectedClassId) || state.overview?.classes[0] || null;
 }
 
-function renderClassOptions(classroom) {
+function renderLessonOptions(classroom, key) {
   return state.overview.lessons.map((lesson) => `
-    <option value="${lesson.id}" ${lesson.id === classroom.activeSebLessonId ? "selected" : ""}>
+    <option value="${lesson.id}" ${lesson.id === classroom[key] ? "selected" : ""}>
       ${escapeHtml(lesson.title)}
     </option>
   `).join("");
@@ -51,6 +51,7 @@ function renderClassCards() {
       <div class="eyebrow">${escapeHtml(classroom.name)}</div>
       <h2>${escapeHtml(classroom.code)}</h2>
       <p>${escapeHtml(`${classroom.studentCount} Lernende · Ø ${classroom.averageProgress}% Fortschritt`)}</p>
+      <p>${escapeHtml(`Peer Review: ${classroom.peerReviewSummary.completedReviews}/${classroom.peerReviewSummary.totalAssignments}`)}</p>
     </button>
   `).join("");
 }
@@ -74,6 +75,10 @@ function renderStudents(classroom) {
         <span>${escapeHtml(`${student.progress.theoryEntries} Theoriebezüge`)}</span>
         <span>${escapeHtml(`${student.progress.evidenceEntries} Textanker`)}</span>
         <span>${escapeHtml(`Letzter Modus: ${student.lastMode}`)}</span>
+      </div>
+      <div class="student-metrics">
+        <span>${escapeHtml(`zugewiesen: ${student.peerReview.completedAssignedCount}/${student.peerReview.assignedCount}`)}</span>
+        <span>${escapeHtml(`erhalten: ${student.peerReview.receivedCompletedCount}/${student.peerReview.receivedCount}`)}</span>
       </div>
       <div class="lesson-progress-list">
         ${student.progress.lessonProgress.map((lesson) => `
@@ -100,6 +105,15 @@ function renderLessonLinks() {
   `).join("");
 }
 
+function renderCriteriaHelp() {
+  return state.overview.reviewCriteria.map((criterion) => `
+    <div class="criterion-help">
+      <strong>${escapeHtml(criterion.label)}</strong>
+      <p>${escapeHtml(criterion.prompt)}</p>
+    </div>
+  `).join("");
+}
+
 function render() {
   if (state.loading) {
     app.innerHTML = '<main class="teacher-shell"><section class="panel"><h1>Lädt ...</h1><p>Dashboard wird vorbereitet.</p></section></main>';
@@ -118,8 +132,8 @@ function render() {
       <section class="hero panel">
         <div>
           <div class="eyebrow">Lehrkraft-Dashboard</div>
-          <h1>Klassen, Codes und Lesefortschritt</h1>
-          <p>Hier steuerst du Klassen-Codes, das aktive SEB-Arbeitsset und den Lernstand der einzelnen Schüler*innen.</p>
+          <h1>Klassen, Codes, Fortschritt und Peer Review</h1>
+          <p>Hier steuerst du Klassen-Codes, das aktive SEB-Arbeitsset, Peer-Review-Zuweisungen und den Lernstand der einzelnen Schüler*innen.</p>
         </div>
         <div class="hero-actions">
           <a class="button secondary" href="/auth/teacher/logout">Abmelden</a>
@@ -149,7 +163,7 @@ function render() {
               <label>
                 Aktive SEB-Lektion
                 <select name="activeSebLessonId">
-                  ${renderClassOptions(classroom)}
+                  ${renderLessonOptions(classroom, "activeSebLessonId")}
                 </select>
               </label>
               <label class="toggle">
@@ -160,6 +174,32 @@ function render() {
                 <input type="checkbox" name="allowSeb" ${classroom.allowSeb ? "checked" : ""}>
                 SEB-Version freigeben
               </label>
+              <div class="review-settings-box">
+                <div class="eyebrow">Peer Review</div>
+                <label class="toggle">
+                  <input type="checkbox" name="peerReviewEnabled" ${classroom.peerReviewEnabled ? "checked" : ""}>
+                  Peer Review in der offenen Version aktivieren
+                </label>
+                <label>
+                  Review-Lektion
+                  <select name="peerReviewLessonId">
+                    ${renderLessonOptions(classroom, "peerReviewLessonId")}
+                  </select>
+                </label>
+                <label>
+                  Anzahl Reviews pro Person
+                  <input type="number" min="0" max="5" name="requiredPeerReviews" value="${escapeHtml(classroom.requiredPeerReviews)}">
+                </label>
+                <label>
+                  Review-Hinweise
+                  <textarea name="peerReviewInstructions" rows="5">${escapeHtml(classroom.peerReviewInstructions || "")}</textarea>
+                </label>
+                <div class="metrics-row">
+                  <span class="badge">${escapeHtml(`zugewiesen: ${classroom.peerReviewSummary.totalAssignments}`)}</span>
+                  <span class="badge">${escapeHtml(`abgeschlossen: ${classroom.peerReviewSummary.completedReviews}`)}</span>
+                  <span class="badge">${escapeHtml(`offen: ${classroom.peerReviewSummary.pendingReviews}`)}</span>
+                </div>
+              </div>
               <div class="row">
                 <button type="submit">Einstellungen speichern</button>
                 <button type="button" class="button secondary" data-action="regenerate-code" data-class-id="${classroom.id}">Code neu erzeugen</button>
@@ -178,11 +218,14 @@ function render() {
         <article class="panel">
           <div class="panel-head">
             <div>
-              <div class="eyebrow">Direkte Arbeitssets</div>
-              <h2>Lektionslinks</h2>
+              <div class="eyebrow">Review-Rubrik und Lektionslinks</div>
+              <h2>Arbeitsrahmen</h2>
             </div>
           </div>
-          <div class="lesson-link-grid">
+          <div class="criteria-help-grid">
+            ${renderCriteriaHelp()}
+          </div>
+          <div class="lesson-link-grid top-gap">
             ${renderLessonLinks()}
           </div>
         </article>
@@ -191,7 +234,7 @@ function render() {
       <section class="panel">
         <div class="panel-head">
           <div>
-            <div class="eyebrow">Lernstand</div>
+            <div class="eyebrow">Lernstand und Review-Fortschritt</div>
             <h2>${escapeHtml(classroom?.name || "Klasse")}</h2>
           </div>
         </div>
@@ -279,7 +322,11 @@ document.addEventListener("submit", async (event) => {
           name: formData.get("name"),
           activeSebLessonId: formData.get("activeSebLessonId"),
           allowOpen: formData.get("allowOpen") === "on",
-          allowSeb: formData.get("allowSeb") === "on"
+          allowSeb: formData.get("allowSeb") === "on",
+          peerReviewEnabled: formData.get("peerReviewEnabled") === "on",
+          peerReviewLessonId: formData.get("peerReviewLessonId"),
+          requiredPeerReviews: Number(formData.get("requiredPeerReviews") || 0),
+          peerReviewInstructions: formData.get("peerReviewInstructions")
         })
       });
       render();

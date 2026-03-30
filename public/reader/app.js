@@ -5,6 +5,12 @@ const modeLabel = window.THIEL_READER_MODE_LABEL || "Offene Version";
 const config = window.THIEL_READER_CONFIG || {};
 const app = document.body;
 
+const reviewLevels = [
+  { value: "stark", label: "stark" },
+  { value: "teilweise", label: "teilweise" },
+  { value: "offen", label: "offen" }
+];
+
 const defaultState = {
   ready: false,
   loading: true,
@@ -12,12 +18,15 @@ const defaultState = {
   classroom: null,
   student: null,
   progress: null,
+  peerReview: null,
+  selectedReviewId: null,
   lessonId: config.forcedLessonId || lessonSets[0].id,
   moduleId: readerModules[0].id,
   entryId: readerModules[0].entries[0].id,
   theoryId: theoryResources[0].id,
   notes: {},
   saveStatus: "idle",
+  reviewSaveStatus: "idle",
   lastSavedAt: ""
 };
 
@@ -38,6 +47,30 @@ async function fetchBootstrap() {
     throw new Error("Die Reader-Sitzung konnte nicht geladen werden.");
   }
   return response.json();
+}
+
+function applyBootstrap(payload) {
+  state.classroom = payload.classroom;
+  state.student = payload.student;
+  state.progress = payload.progress;
+  state.peerReview = payload.peerReview;
+  state.notes = payload.work.notes || {};
+  state.lessonId = config.forcedLessonId
+    || (mode === "seb" ? payload.classroom.activeSebLessonId : payload.work.selectedLessonId)
+    || state.lessonId;
+  state.moduleId = payload.work.moduleId || state.moduleId;
+  state.entryId = payload.work.entryId || state.entryId;
+  state.theoryId = payload.work.theoryId || state.theoryId;
+  state.lastSavedAt = payload.work.updatedAt || "";
+
+  if (state.peerReview?.assignments?.length) {
+    const stillVisible = state.peerReview.assignments.some((assignment) => assignment.id === state.selectedReviewId);
+    if (!stillVisible) {
+      state.selectedReviewId = state.peerReview.assignments[0].id;
+    }
+  } else {
+    state.selectedReviewId = null;
+  }
 }
 
 async function saveProgress() {
@@ -67,8 +100,7 @@ async function saveProgress() {
     }
 
     const payload = await response.json();
-    state.progress = payload.progress;
-    state.lastSavedAt = payload.work.updatedAt;
+    applyBootstrap(payload);
     state.saveStatus = "saved";
     render();
   } catch (error) {
@@ -185,6 +217,10 @@ function progressForCurrentLesson() {
   return state.progress?.lessonProgress?.find((entry) => entry.id === lesson.id) || null;
 }
 
+function currentReviewAssignment() {
+  return state.peerReview?.assignments?.find((assignment) => assignment.id === state.selectedReviewId) || state.peerReview?.assignments?.[0] || null;
+}
+
 function transferPromptsFor(entry, theory) {
   return [
     `Beziehe "${entry.passageLabel}" gezielt auf ${theory.shortTitle.toLowerCase()} und sichere deine Aussage mit mindestens zwei Wörtern aus dem Text.`,
@@ -275,7 +311,7 @@ function renderLessonRail() {
     return `
       <button class="lesson-pill ${lesson.id === state.lessonId ? "is-active" : ""}" data-action="select-lesson" data-lesson-id="${lesson.id}" ${mode === "seb" || config.forcedLessonId ? "disabled" : ""}>
         <span>${escapeHtml(lesson.title)}</span>
-        <small>${escapeHtml(progress ? `${progress.completedEntries}/${progress.totalEntries}` : lesson.moduleIds.length + " Module")}</small>
+        <small>${escapeHtml(progress ? `${progress.completedEntries}/${progress.totalEntries}` : `${lesson.moduleIds.length} Module`)}</small>
       </button>
     `;
   }).join("");
@@ -468,6 +504,173 @@ function renderTheoryPanel(module, entry) {
   `;
 }
 
+function renderReviewList() {
+  return state.peerReview.assignments.map((assignment) => `
+    <button class="review-pill ${assignment.id === state.selectedReviewId ? "is-active" : ""}" data-action="select-review" data-review-id="${assignment.id}">
+      <span>${escapeHtml(assignment.reviewee?.displayName || "Peer")}</span>
+      <small>${escapeHtml(`${assignment.status} · ${assignment.reviewee?.lessonPortfolio?.completedEntries || 0}/${assignment.reviewee?.lessonPortfolio?.totalEntries || 0} Passagen`)}</small>
+    </button>
+  `).join("");
+}
+
+function renderCriterionFields(review) {
+  return state.peerReview.criteria.map((criterion) => {
+    const value = review.criteria.find((entry) => entry.id === criterion.id) || { id: criterion.id, level: "", comment: "" };
+    return `
+      <article class="criterion-card">
+        <div>
+          <strong>${escapeHtml(criterion.label)}</strong>
+          <p>${escapeHtml(criterion.prompt)}</p>
+        </div>
+        <label>
+          Einschätzung
+          <select name="criterion-level" data-criterion-id="${criterion.id}">
+            <option value="">bitte wählen</option>
+            ${reviewLevels.map((level) => `<option value="${level.value}" ${value.level === level.value ? "selected" : ""}>${escapeHtml(level.label)}</option>`).join("")}
+          </select>
+        </label>
+        <label>
+          Kommentar
+          <textarea name="criterion-comment" data-criterion-id="${criterion.id}" placeholder="Woran sieht die Person deine Einschätzung konkret im Text?">${escapeHtml(value.comment)}</textarea>
+        </label>
+      </article>
+    `;
+  }).join("");
+}
+
+function renderPeerPortfolio(review) {
+  const entries = review.reviewee?.lessonPortfolio?.entries || [];
+  if (!entries.length) {
+    return '<div class="empty-box">Für diese Lektion liegt von dieser Person noch kein bearbeiteter Passagenausschnitt vor.</div>';
+  }
+
+  return entries.map((entry) => `
+    <article class="peer-entry-card">
+      <div class="peer-entry-head">
+        <div>
+          <div class="eyebrow">${escapeHtml(entry.pageHint)}</div>
+          <h3>${escapeHtml(entry.title)}</h3>
+        </div>
+        <span class="status-badge">${escapeHtml(entry.passageLabel)}</span>
+      </div>
+      ${entry.observation ? `<p><strong>Beobachtung:</strong> ${escapeHtml(entry.observation)}</p>` : ""}
+      ${entry.evidence ? `<p><strong>Textanker:</strong> ${escapeHtml(entry.evidence)}</p>` : ""}
+      ${entry.interpretation ? `<p><strong>Deutung:</strong> ${escapeHtml(entry.interpretation)}</p>` : ""}
+      ${entry.theory ? `<p><strong>Theoriebezug:</strong> ${escapeHtml(entry.theory)}</p>` : ""}
+      ${entry.revision ? `<p><strong>Revision:</strong> ${escapeHtml(entry.revision)}</p>` : ""}
+    </article>
+  `).join("");
+}
+
+function renderPeerReviewPanel() {
+  if (mode !== "open" || !state.peerReview?.enabled) {
+    return "";
+  }
+
+  if (!state.peerReview.assignments?.length) {
+    return `
+      <section class="panel review-panel">
+        <div class="panel-head">
+          <div>
+            <div class="eyebrow">Peer Review</div>
+            <h2>Derzeit keine Zuweisungen</h2>
+          </div>
+        </div>
+        <div class="empty-box">Sobald weitere Schüler*innen in dieser Klasse arbeiten oder die Lehrkraft Peer Review aktiviert, erscheinen hier deine Review-Aufträge.</div>
+      </section>
+    `;
+  }
+
+  const review = currentReviewAssignment();
+  const reviewStatusLabel = {
+    idle: "",
+    saving: "speichert Review ...",
+    saved: "Review gespeichert",
+    error: "Review konnte nicht gespeichert werden"
+  }[state.reviewSaveStatus] || "";
+
+  return `
+    <section class="panel review-panel">
+      <div class="panel-head">
+        <div>
+          <div class="eyebrow">Peer Review</div>
+          <h2>Zugewiesene Rückmeldungen</h2>
+        </div>
+        <span class="status-badge">${escapeHtml(`${state.peerReview.stats.completedAssignedCount}/${state.peerReview.stats.assignedCount} abgeschlossen`)}</span>
+      </div>
+
+      <div class="notice-box">
+        <strong>Arbeitsrahmen</strong>
+        <p>${escapeHtml(state.peerReview.instructions)}</p>
+        <p>${escapeHtml(`Review-Lektion: ${lessonSets.find((lesson) => lesson.id === state.peerReview.lessonId)?.title || state.peerReview.lessonId}`)}</p>
+      </div>
+
+      <div class="review-layout">
+        <aside class="review-sidebar">
+          <div class="review-pill-list">
+            ${renderReviewList()}
+          </div>
+        </aside>
+
+        <div class="review-main">
+          <div class="panel-head">
+            <div>
+              <div class="eyebrow">Peer-Arbeit</div>
+              <h2>${escapeHtml(review.reviewee?.displayName || "Peer")}</h2>
+            </div>
+            <span class="status-badge">${escapeHtml(review.status)}</span>
+          </div>
+
+          <div class="review-meta-grid">
+            <div class="status-card">
+              <span class="eyebrow">Bearbeitete Passagen</span>
+              <strong>${escapeHtml(`${review.reviewee?.lessonPortfolio?.completedEntries || 0}/${review.reviewee?.lessonPortfolio?.totalEntries || 0}`)}</strong>
+            </div>
+            <div class="status-card">
+              <span class="eyebrow">Zuletzt aktualisiert</span>
+              <strong>${escapeHtml(review.reviewee?.updatedAt ? new Date(review.reviewee.updatedAt).toLocaleString("de-CH") : "-")}</strong>
+            </div>
+          </div>
+
+          <div class="peer-portfolio">
+            ${renderPeerPortfolio(review)}
+          </div>
+
+          <form id="peer-review-form" class="review-form">
+            <input type="hidden" name="reviewId" value="${review.id}">
+            <div class="criteria-grid">
+              ${renderCriterionFields(review)}
+            </div>
+
+            <label>
+              Wichtiger Textanker aus der besprochenen Arbeit
+              <textarea name="quotedEvidence" placeholder="Welche Formulierung oder welches Signalwort soll in der Überarbeitung unbedingt erhalten oder präzisiert werden?">${escapeHtml(review.quotedEvidence || "")}</textarea>
+            </label>
+            <label>
+              Stärken
+              <textarea name="strengths" placeholder="Was gelingt der Person textnah oder deutungsstark bereits gut?">${escapeHtml(review.strengths || "")}</textarea>
+            </label>
+            <label>
+              Nächste Schritte
+              <textarea name="nextSteps" placeholder="Welche konkrete Überarbeitung würdest du als Nächstes empfehlen?">${escapeHtml(review.nextSteps || "")}</textarea>
+            </label>
+            <label>
+              Rückfrage
+              <textarea name="question" placeholder="Welche Rückfrage hilft der Person, ihre Deutung weiter zu schärfen?">${escapeHtml(review.question || "")}</textarea>
+            </label>
+
+            <div class="row">
+              <button type="submit" data-submit-status="draft">Entwurf speichern</button>
+              <button type="submit" class="button secondary" data-submit-status="submitted">Review abschicken</button>
+              ${reviewStatusLabel ? `<span class="inline-status">${escapeHtml(reviewStatusLabel)}</span>` : ""}
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function renderTopStatus() {
   const lesson = currentLesson();
   const progress = progressForCurrentLesson();
@@ -495,6 +698,10 @@ function renderTopStatus() {
       <div class="status-card">
         <span class="eyebrow">Fortschritt</span>
         <strong>${escapeHtml(progress ? `${progress.completedEntries}/${progress.totalEntries}` : "-")}</strong>
+      </div>
+      <div class="status-card">
+        <span class="eyebrow">Peer Reviews</span>
+        <strong>${escapeHtml(state.peerReview?.stats ? `${state.peerReview.stats.completedAssignedCount}/${state.peerReview.stats.assignedCount}` : "-")}</strong>
       </div>
       <div class="status-card">
         <span class="eyebrow">Status</span>
@@ -542,7 +749,7 @@ function render() {
           <p>
             ${mode === "seb"
               ? "Diese SEB-Fassung arbeitet mit einem klaren Lektionen-Set. Die Textpassagen und Theorie-Linsen sind auf die aktuelle Prüfungseinheit fokussiert."
-              : "Der Text ist vollständig integriert. Links steuerst du den Textpfad und die Theorie-Linsen, in der Mitte liest du die Passage im PDF, rechts verbindest du Textbeobachtung, Theoriebezug und Überarbeitung."}
+              : "Der Text ist vollständig integriert. Links steuerst du den Textpfad und die Theorie-Linsen, in der Mitte liest du die Passage im PDF, rechts verbindest du Textbeobachtung, Theoriebezug, Überarbeitung und Peer Review."}
           </p>
         </div>
         <div class="hero-actions">
@@ -623,6 +830,7 @@ function render() {
 
           ${renderTheoryPanel(module, entry)}
           ${renderNotebook(entry)}
+          ${renderPeerReviewPanel()}
         </section>
       </section>
     </main>
@@ -636,6 +844,71 @@ function updateNoteField(field, value) {
     [field]: value
   };
   state.saveStatus = "idle";
+}
+
+function updateReviewField(field, value) {
+  const review = currentReviewAssignment();
+  if (!review) {
+    return;
+  }
+
+  review[field] = value;
+  state.reviewSaveStatus = "idle";
+}
+
+function updateReviewCriterion(criterionId, field, value) {
+  const review = currentReviewAssignment();
+  if (!review) {
+    return;
+  }
+
+  const current = review.criteria.find((entry) => entry.id === criterionId);
+  if (current) {
+    current[field] = value;
+  }
+  state.reviewSaveStatus = "idle";
+}
+
+async function submitReview(status) {
+  const review = currentReviewAssignment();
+  if (!review) {
+    return;
+  }
+
+  state.reviewSaveStatus = "saving";
+  render();
+
+  try {
+    const response = await fetch(`/reader-api/reviews/${review.id}`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        status,
+        criteria: review.criteria,
+        quotedEvidence: review.quotedEvidence,
+        strengths: review.strengths,
+        nextSteps: review.nextSteps,
+        question: review.question
+      })
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || "Peer Review konnte nicht gespeichert werden.");
+    }
+
+    const payload = await response.json();
+    applyBootstrap(payload);
+    state.reviewSaveStatus = "saved";
+    render();
+  } catch (error) {
+    state.reviewSaveStatus = "error";
+    state.error = error.message;
+    render();
+  }
 }
 
 function exportNotes() {
@@ -738,19 +1011,46 @@ document.addEventListener("click", (event) => {
     queueSave();
   }
 
+  if (action === "select-review") {
+    state.selectedReviewId = target.dataset.reviewId;
+    state.reviewSaveStatus = "idle";
+    render();
+  }
+
   if (action === "export-notes") {
     exportNotes();
   }
 });
 
 document.addEventListener("input", (event) => {
-  const form = event.target.closest("#note-form");
-  if (!form) {
+  const noteForm = event.target.closest("#note-form");
+  if (noteForm) {
+    updateNoteField(event.target.name, event.target.value);
+    queueSave();
     return;
   }
 
-  updateNoteField(event.target.name, event.target.value);
-  queueSave();
+  const reviewForm = event.target.closest("#peer-review-form");
+  if (reviewForm) {
+    if (event.target.name === "criterion-level") {
+      updateReviewCriterion(event.target.dataset.criterionId, "level", event.target.value);
+    } else if (event.target.name === "criterion-comment") {
+      updateReviewCriterion(event.target.dataset.criterionId, "comment", event.target.value);
+    } else {
+      updateReviewField(event.target.name, event.target.value);
+    }
+  }
+});
+
+document.addEventListener("submit", (event) => {
+  if (event.target.id !== "peer-review-form") {
+    return;
+  }
+
+  event.preventDefault();
+  const submitter = event.submitter;
+  const status = submitter?.dataset.submitStatus || "draft";
+  submitReview(status);
 });
 
 async function init() {
@@ -758,17 +1058,7 @@ async function init() {
 
   try {
     const payload = await fetchBootstrap();
-    state.classroom = payload.classroom;
-    state.student = payload.student;
-    state.progress = payload.progress;
-    state.notes = payload.work.notes || {};
-    state.lessonId = config.forcedLessonId
-      || (mode === "seb" ? payload.classroom.activeSebLessonId : payload.work.selectedLessonId)
-      || state.lessonId;
-    state.moduleId = payload.work.moduleId || state.moduleId;
-    state.entryId = payload.work.entryId || state.entryId;
-    state.theoryId = payload.work.theoryId || state.theoryId;
-    state.lastSavedAt = payload.work.updatedAt || "";
+    applyBootstrap(payload);
     state.ready = true;
     state.loading = false;
     state.error = "";
