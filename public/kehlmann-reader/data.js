@@ -160,8 +160,8 @@ export const theoryResources = [
     audioUrl: fritzBuffAudio,
     audioLabel: "Soundfile öffnen",
     summary:
-      "Die Primärquelle führt in eine unmittelbare Binnenperspektive der Reise. Bildseiten, Transkript-Auszüge und Soundfile schärfen, wie Hoffnung, Warten, Gerüchte, politische Entscheidungen und die Angst vor der Rückkehr aus einer zeitgenössischen Passagiersicht erlebt werden.",
-    keyIdeas: ["Reisebericht", "Binnenperspektive", "Havanna", "Florida", "Antwerpen", "Passagiererfahrung"],
+      "Die Primärquelle führt in eine unmittelbare Binnenperspektive der Reise. Besonders wichtig: Fritz Buff war erst 17 Jahre alt und reiste allein. Bildseiten, Transkript-Auszüge und Soundfile schärfen, wie Hoffnung, Warten, Gerüchte, politische Entscheidungen und die Angst vor der Rückkehr aus einer zeitgenössischen Passagiersicht erlebt werden.",
+    keyIdeas: ["17 Jahre", "allein reisend", "Binnenperspektive", "Havanna", "Florida", "Antwerpen", "Passagiererfahrung"],
     questions: [
       "Welche Stimmungsschwankungen zwischen Hoffnung, Panik und Erleichterung werden im Reisebericht sichtbar?",
       "Wie verändert die Ich-Perspektive des Berichts deinen Blick auf Passagen, die das Drama stärker montiert oder verteilt?",
@@ -1201,23 +1201,24 @@ export const lessonSets = [
     id: "lesson-14-fritz-buff-primärquelle",
     title: "Lektion 14 · Fritz Buff, NDR-Chronologie und historische Nahperspektive",
     summary:
-      "Primärquellen-Einheit mit Reisebericht, Bilddokumenten, Soundfile und historischer Chronologie zur St. Louis.",
+      "Primärquellen-Einheit mit Reisebericht, Bilddokumenten, Soundfile und historischer Chronologie zur St. Louis. Fritz Buff war dabei erst 17 und allein unterwegs.",
     entryIds: ["abfahrt-1", "havanna-3", "rueckweg-2", "rueckweg-4"],
     moduleIds: ["abfahrt", "havanna", "rueckweg"],
-    reviewFocus: "Arbeite präzise mit Primärquelle, Chronologie und Dramentext zusammen und zeige, wie das Stück historische Erfahrung zugleich verdichtet und erweitert.",
+    reviewFocus: "Arbeite präzise mit Primärquelle, Chronologie und Dramentext zusammen und zeige, wie das Stück historische Erfahrung zugleich verdichtet und erweitert. Behalte dabei im Blick, dass Fritz Buff als 17-Jähriger allein reiste und damit jünger war als manche Lerngruppenmitglieder.",
     sebPrompt:
-      "Verbinde die ausgewählten Passagen ausdrücklich mit Fritz Buffs Reisebericht, mit den Bildseiten und mit der NDR-Chronologie. Zeige, wie das Drama Binnenperspektive und historische Gesamtbewegung zusammenführt.",
+      "Verbinde die ausgewählten Passagen ausdrücklich mit Fritz Buffs Reisebericht, mit den Bildseiten und mit der NDR-Chronologie. Zeige, wie das Drama Binnenperspektive und historische Gesamtbewegung zusammenführt, und arbeite ausdrücklich heraus, welche Wirkung es hat, dass Buff erst 17 war und allein reiste.",
     recommendedTheoryIds: ["fritz-buff-reisebericht", "ndr-st-louis", "historischer-kontext"],
     resourceAssignments: [
       {
         resourceId: "fritz-buff-reisebericht",
         title: "Primärquellenauftrag: Reisebericht, Bildseiten und Soundfile",
         summary:
-          "Der Reisebericht von Fritz Buff führt in die Binnenperspektive der Passagiere und lässt sich direkt mit ausgewählten Szenen des Dramas vergleichen.",
+          "Der Reisebericht von Fritz Buff führt in die Binnenperspektive der Passagiere und lässt sich direkt mit ausgewählten Szenen des Dramas vergleichen. Entscheidend ist dabei, dass Buff erst 17 war und allein reiste.",
         task:
-          "Nutze die Bildseiten, den eingebetteten Bericht und das Soundfile, um die Passagen historisch und perspektivisch zu schärfen. Zeige, wie Hoffen, Warten, Gerüchte und Erleichterung im Drama verdichtet werden.",
+          "Nutze die Bildseiten, den eingebetteten Bericht und das Soundfile, um die Passagen historisch und perspektivisch zu schärfen. Zeige, wie Hoffen, Warten, Gerüchte und Erleichterung im Drama verdichtet werden, und arbeite ausdrücklich mit dem Umstand, dass Fritz Buff als 17-Jähriger allein unterwegs war.",
         questions: [
           "Welche Stimmungslagen aus der Quelle kehren im Drama wieder?",
+          "Wie verändert es deine Lektüre, dass Fritz Buff erst 17 Jahre alt war und ohne Familie reiste?",
           "Wo wird die Passagierperspektive im Stück übernommen, wo überformt?",
           "Welche Bild- oder Tonspur hilft dir am stärksten, die Passage neu zu lesen?"
         ]
