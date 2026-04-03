@@ -9,6 +9,18 @@ const dokumentartheaterVideo =
 const epischesTheaterVideo =
   "https://www.dropbox.com/scl/fi/kcm1eu8mgnalwj5mykxl7/EpischesTheater.mp4?rlkey=vifs3zrdn2qcnf48kv82oq8se&st=f0yzthwx&dl=0";
 const steinbruchPdf = "/reader/assets/im-steinbruch-kehlmann.pdf";
+const susanneHeimPdf = "/reader/assets/susanne-heim-zwischen-den-grenzen.pdf";
+const evianWikipediaUrl = "https://de.wikipedia.org/wiki/Konferenz_von_%C3%89vian";
+const evianDeutschlandfunkUrl =
+  "https://www.deutschlandfunk.de/jochen-thies-evian-1938-als-die-welt-die-juden-verriet-100.html";
+const ndrStLouisUrl =
+  "https://www.ndr.de/geschichte/chronologie/Die-Irrfahrt-der-St-Louis-Fluechtlinge-die-keiner-wollte,stlouis126.html";
+const andruckRssUrl = "https://www.deutschlandfunk.de/andruck-100.xml";
+const evianWikipediaDossier = "/reader/assets/evian-konferenz-dossier.html";
+const evianDeutschlandfunkDossier = "/reader/assets/evian-deutschlandfunk-dossier.html";
+const ndrStLouisDossier = "/reader/assets/ndr-st-louis-dossier.html";
+const fritzBuffDossier = "/reader/assets/fritz-buff-reisebericht-dossier.html";
+const fritzBuffAudio = "/reader/assets/fritz-buff-soundfile.mp3";
 
 function asRaw(url) {
   return url.replace("dl=0", "raw=1");
@@ -38,6 +50,130 @@ export const theoryResources = [
     ],
     writingFrame:
       "Historisch bedeutsam ist die Passage, weil sie zeigt, wie ... nicht nur einzelnen Figuren, sondern einer ganzen Gruppe von Flüchtlingen widerfährt."
+  },
+  {
+    id: "evian-konferenz",
+    title: "Historisches Dossier: Die Konferenz von Évian",
+    shortTitle: "Évian",
+    sourceTitle: "Wikipedia · Konferenz von Évian",
+    mediaType: "html",
+    openUrl: evianWikipediaUrl,
+    embedUrl: evianWikipediaDossier,
+    summary:
+      "Diese Ressource schärft den historischen Unterbau des Dramas: Évian 1938 steht für internationale Beratungen ohne bindende Aufnahmepolitik und für eine globale Politik der verweigerten Rettung.",
+    keyIdeas: ["Évian", "32 Staaten", "Dominikanische Republik", "Aufnahmeverweigerung", "Intergovernmental Committee on Refugees"],
+    questions: [
+      "Welche politische Logik der Verantwortungsverschiebung wird in Évian sichtbar?",
+      "Warum ist die Dominikanische Republik als fast einzige Zusage historisch aufschlussreich und zugleich begrenzt?",
+      "Wie hilft dir das Wissen über Évian, die Havanna- und Rückweg-Szenen des Dramas schärfer zu lesen?"
+    ],
+    transferPrompts: [
+      "Zeige an der Passage, wie das Drama dieselbe Struktur aus Sichtbarkeit, Verhandlung und verweigerter Aufnahme dramatisiert.",
+      "Prüfe, ob die Szene eher individuelles Leid, institutionelle Logik oder internationale Mitschuld in den Vordergrund rückt.",
+      "Verbinde einen konkreten Satz der Passage mit der historischen Konstellation von Évian."
+    ],
+    writingFrame:
+      "Mit Évian gelesen, erscheint die Passage nicht als Einzelfall, sondern als Symptom einer internationalen Politik, die ..."
+  },
+  {
+    id: "evian-deutschlandfunk",
+    title: "Deutschlandfunk: Evian 1938 und die Sprache des Verrats",
+    shortTitle: "DLF Évian",
+    sourceTitle: "Deutschlandfunk · Andruck",
+    mediaType: "html",
+    openUrl: evianDeutschlandfunkUrl,
+    embedUrl: evianDeutschlandfunkDossier,
+    audioUrl: andruckRssUrl,
+    audioLabel: "Andruck-Podcast-RSS öffnen",
+    summary:
+      "Die Rezension zu Jochen Thies verschiebt den Blick auf die Sprache der Konferenz: kein Land öffnet die Grenzen, Hitler wird nicht klar benannt, und ökonomische Ausreden überlagern die politische Verantwortung.",
+    keyIdeas: ["unterschwelliger Antisemitismus", "Flüchtlinge statt Vertriebene", "hohe Arbeitslosigkeit", "kein Land öffnete seine Grenzen", "Nachfolgeorganisation wirkungslos"],
+    questions: [
+      "Welche Begriffe und Argumentationsmuster der Konferenz werden im Deutschlandfunk-Beitrag als entlastende Sprache entlarvt?",
+      "Warum ist der Hinweis wichtig, dass Hitler zwar gefürchtet, aber nicht offen benannt wird?",
+      "Wie verstärkt diese Quelle deine Deutung der diplomatischen Szenen als Geschichte politischer Unterlassung?"
+    ],
+    transferPrompts: [
+      "Suche in der Passage nach Formulierungen des Ausweichens, Verschiebens oder Beschönigens und verbinde sie mit dem DLF-Befund.",
+      "Prüfe, wo das Drama politische Gewalt nicht offen ausspricht, sondern über Verwaltungs- und Diplomatensprache zeigt.",
+      "Erkläre, wie die Szene internationale Untätigkeit nicht nur berichtet, sondern moralisch lesbar macht."
+    ],
+    writingFrame:
+      "Mit dem Deutschlandfunk-Beitrag wird sichtbar, dass die Passage nicht nur von gescheiterter Hilfe erzählt, sondern die Sprache dieser Hilfeverweigerung offenlegt."
+  },
+  {
+    id: "susanne-heim-grenzen",
+    title: "Susanne Heim: „Die Menschen irrten zwischen den Grenzen hin und her“",
+    shortTitle: "Susanne Heim",
+    sourceTitle: "Republik · Susanne Heim",
+    mediaType: "pdf",
+    openUrl: susanneHeimPdf,
+    embedUrl: susanneHeimPdf,
+    summary:
+      "Der Text vertieft die Frage nach Grenzregimen, internationalen Abwehrmechanismen und der historischen Erfahrung, zwischen Transit, Blockade und Zuständigkeitsverschiebung festzusitzen.",
+    keyIdeas: ["Grenzregime", "Transit", "Zwischenräume", "staatliche Abwehr", "historische Bewegungszwänge"],
+    questions: [
+      "Welche Grenzlogik wird im Text sichtbar, und wie hilft sie dir, die St.-Louis-Szenen historisch zu präzisieren?",
+      "Wie beschreibt die Quelle das Gefühl des Hin- und Herirrens zwischen Zuständigkeiten und Grenzen?",
+      "Wo zeigt das Drama dieselbe Erfahrung von Transit ohne Ankunft und Sichtbarkeit ohne Aufnahme?"
+    ],
+    transferPrompts: [
+      "Verbinde die Passage mit einer konkreten Beobachtung aus dem Republik-Text über Grenzen, Transit oder politische Zuständigkeit.",
+      "Prüfe, ob die Szene eher die emotionale, bürokratische oder geopolitische Seite des Grenzregimes freilegt.",
+      "Erkläre, wie der historische Text die Dramenpassage gegen zu schnelle Individualisierung absichert."
+    ],
+    writingFrame:
+      "Die Quelle von Susanne Heim verschärft die Passage historisch, weil sie zeigt, dass das Hin- und Hergeschobenwerden ..."
+  },
+  {
+    id: "ndr-st-louis",
+    title: "NDR-Chronologie: Die Irrfahrt der „St. Louis“",
+    shortTitle: "NDR St. Louis",
+    sourceTitle: "NDR Geschichte",
+    mediaType: "html",
+    openUrl: ndrStLouisUrl,
+    embedUrl: ndrStLouisDossier,
+    summary:
+      "Die NDR-Chronologie verdichtet den historischen Ablauf der Reise: Abfahrt in Hamburg, Havanna, Florida, Rückweg, Antwerpen und die europäische Verteilung. Sie hilft, den dramatischen Ablauf als reale Chronologie nachzuvollziehen.",
+    keyIdeas: ["13. Mai 1939", "Havanna", "Florida", "Antwerpen", "mehr als 900 Flüchtlinge"],
+    questions: [
+      "Welche Stationen der Reise werden im NDR-Beitrag als Wendepunkte markiert, und wie nutzt das Drama diese Struktur?",
+      "Wie verbindet der Artikel Kapitän Schröders Handeln mit der politischen Verantwortungslosigkeit anderer Akteure?",
+      "Warum ist die Reihenfolge Hamburg, Havanna, Florida und Antwerpen für deine Deutung des Dramas wichtig?"
+    ],
+    transferPrompts: [
+      "Ordne die Passage in die historische Chronologie des NDR-Beitrags ein und zeige, welche Phase der Irrfahrt hier verdichtet wird.",
+      "Prüfe, ob die Szene eher die Erfahrung der Passagiere, die Handlung Schröders oder die Untätigkeit der Staaten scharfstellt.",
+      "Erkläre, wie der historische Überblick dir hilft, die Passagen nicht als einzelne Bilder, sondern als zusammenhängenden Katastrophenverlauf zu lesen."
+    ],
+    writingFrame:
+      "Im NDR-Beitrag erscheint die Passage als Teil einer genauen historischen Chronologie, in der ..."
+  },
+  {
+    id: "fritz-buff-reisebericht",
+    title: "Primärquelle: Fritz Buffs Reisebericht von Bord der St. Louis",
+    shortTitle: "Fritz Buff",
+    sourceTitle: "Hamburger Schlüsseldokumente",
+    mediaType: "html",
+    openUrl: fritzBuffDossier,
+    embedUrl: fritzBuffDossier,
+    audioUrl: fritzBuffAudio,
+    audioLabel: "Soundfile öffnen",
+    summary:
+      "Die Primärquelle führt in eine unmittelbare Binnenperspektive der Reise. Bildseiten, Transkript-Auszüge und Soundfile schärfen, wie Hoffnung, Warten, Gerüchte, politische Entscheidungen und die Angst vor der Rückkehr aus einer zeitgenössischen Passagiersicht erlebt werden.",
+    keyIdeas: ["Reisebericht", "Binnenperspektive", "Havanna", "Florida", "Antwerpen", "Passagiererfahrung"],
+    questions: [
+      "Welche Stimmungsschwankungen zwischen Hoffnung, Panik und Erleichterung werden im Reisebericht sichtbar?",
+      "Wie verändert die Ich-Perspektive des Berichts deinen Blick auf Passagen, die das Drama stärker montiert oder verteilt?",
+      "Welche Formulierungen der Quelle helfen dir, das Stück historisch konkreter und emotional präziser zu lesen?"
+    ],
+    transferPrompts: [
+      "Verbinde die Passage mit mindestens einer Beobachtung aus Fritz Buffs Bericht und zeige, welche Erfahrungsebene das Drama übernimmt oder umformt.",
+      "Prüfe, ob die Szene eher der Binnenperspektive der Passagiere oder der übergeordneten politischen Dramaturgie entspricht.",
+      "Erkläre, wie der Reisebericht die Dramenpassage gegen eine zu abstrakte Deutung absichert."
+    ],
+    writingFrame:
+      "Mit Fritz Buffs Bericht gelesen, wirkt die Passage besonders eindringlich, weil die Quelle zeigt, dass ..."
   },
   {
     id: "werkueberblick",
@@ -766,7 +902,49 @@ export const lessonSets = [
     moduleIds: ["diplomatie", "rueckweg"],
     reviewFocus: "Arbeite an den Sprachformen der Verzögerung, des Dealens und der politischen Schuld durch Unterlassung.",
     sebPrompt:
-      "Analysiere die politische Blockade im letzten Drittel des Dramas und zeige, wie Verantwortung immer weiter verschoben wird."
+      "Analysiere die politische Blockade im letzten Drittel des Dramas und zeige, wie Verantwortung immer weiter verschoben wird.",
+    recommendedTheoryIds: ["evian-konferenz", "evian-deutschlandfunk", "ndr-st-louis", "historischer-kontext"],
+    resourceAssignments: [
+      {
+        resourceId: "evian-konferenz",
+        title: "Historischer Tiefenauftrag: Évian als Vorstruktur der St. Louis",
+        summary:
+          "Das Dossier zu Évian dient hier als direkte Vergleichsfolie für Havanna, Florida und den Rückweg: internationale Beratung, aber keine belastbare Aufnahmebereitschaft.",
+        task:
+          "Arbeite an den ausgewählten Passagen heraus, wie das Drama dieselbe politische Struktur sichtbar macht, die schon in Évian 1938 scheitert: Zuständigkeiten werden verteilt, Verantwortung wird beraten, aber konkrete Rettung bleibt aus.",
+        questions: [
+          "Welche Ähnlichkeiten bestehen zwischen der Konferenzlogik von Évian und den diplomatischen Szenen des Dramas?",
+          "Wie hilft dir die Information über 32 Staaten, die ergebnislos beraten, die Blockadeszenen weniger als Ausnahme und stärker als System zu lesen?",
+          "Wo wird im Drama sichtbar, dass Aufnahmeverweigerung nicht einfach privat motiviert ist, sondern politisch organisiert?"
+        ]
+      },
+      {
+        resourceId: "evian-deutschlandfunk",
+        title: "Quellenauftrag: Die Sprache der verweigerten Hilfe",
+        summary:
+          "Die Deutschlandfunk-Rezension lenkt den Blick auf die Sprache von Entlastung, Arbeitsmarktargumenten und diplomatischem Ausweichen.",
+        task:
+          "Vergleiche die Wortlogik des DLF-Beitrags mit den Passagen der Lektion. Zeige, wie das Drama politische Untätigkeit über Verwaltungs-, Sicherheits- und Sachzwangsprache lesbar macht.",
+        questions: [
+          "Welche Formeln des Ausweichens oder Verschiebens erkennst du sowohl im DLF-Beitrag als auch im Drama?",
+          "Warum ist der Hinweis auf 'Flüchtlinge' statt 'Vertriebene' oder Staatsbürger historisch und sprachkritisch wichtig?",
+          "Wie verändert der Beitrag deine Deutung von Unterlassung: als zufälliges Versagen oder als politisch codierte Entscheidung?"
+        ]
+      },
+      {
+        resourceId: "ndr-st-louis",
+        title: "Chronologie-Auftrag: Die Irrfahrt als historische Sequenz",
+        summary:
+          "Die NDR-Chronologie bindet die diplomatischen und maritimen Szenen an einen klaren historischen Ablauf von Hamburg über Havanna und Florida bis Antwerpen zurück.",
+        task:
+          "Nutze den NDR-Beitrag, um die Lektion als Folge realer Wendepunkte zu lesen. Zeige, wie das Drama aus den historischen Stationen eine immer schärfere Kette politischer Blockaden aufbaut.",
+        questions: [
+          "Welche Station der NDR-Chronologie wird in dieser Lektion besonders verdichtet?",
+          "Wie hilft dir der Artikel, die Rolle Schröders von der Untätigkeit der Regierungen zu unterscheiden?",
+          "Wo macht das Drama aus Chronologie moralische Eskalation?"
+        ]
+      }
+    ]
   },
   {
     id: "lesson-10-rueckweg-erinnerung",
@@ -778,7 +956,7 @@ export const lessonSets = [
     reviewFocus: "Begründe am Schlusswort und an den Nachgeschichten, wie das Stück Erinnerung politisch offen hält.",
     sebPrompt:
       "Formuliere eine belastbare Deutung des Endes und verbinde sie mit epischem Theater, dokumentarischer Form oder Kehlmanns Rede „Im Steinbruch“.",
-    recommendedTheoryIds: ["im-steinbruch", "episches-theater", "dokumentartheater"],
+    recommendedTheoryIds: ["im-steinbruch", "episches-theater", "dokumentartheater", "susanne-heim-grenzen", "ndr-st-louis", "fritz-buff-reisebericht"],
     resourceAssignments: [
       {
         resourceId: "im-steinbruch",
@@ -791,6 +969,45 @@ export const lessonSets = [
           "Welche Aussagen aus „Im Steinbruch“ helfen dir, den offenen Schluss als bewusste ethische Form zu verstehen?",
           "Wo widersetzt sich das Drama einer versöhnlichen Abrundung und hält stattdessen historische Unruhe fest?",
           "Wie verändert der Sekundärtext deine Deutung der letzten Passagen im Hinblick auf Gegenwart und Verantwortung?"
+        ]
+      },
+      {
+        resourceId: "susanne-heim-grenzen",
+        title: "Historischer Vertiefungsauftrag: Zwischenräume, Grenzen, Rückweg",
+        summary:
+          "Der Republik-Text von Susanne Heim verschärft den historischen Blick auf Transit, Grenzregime und das Hin- und Hergeschobensein zwischen Staaten.",
+        task:
+          "Lies den Schluss des Dramas zusammen mit dem Text von Susanne Heim. Zeige, wie Rückweg, Zwischenhalt und europäische Verteilung nicht als rettende Ordnung erscheinen, sondern als Teil eines Grenzregimes, das Menschen in Transit hält.",
+        questions: [
+          "Wie hilft dir die Quelle, den Rückweg historisch genauer als Grenz- und Zuständigkeitskrise zu verstehen?",
+          "Wo zeigt das Drama nicht nur Verzweiflung, sondern strukturelles Feststecken zwischen Staaten und Grenzen?",
+          "Wie verändert diese historische Perspektive deine Deutung der scheinbaren Rettung am Ende?"
+        ]
+      },
+      {
+        resourceId: "ndr-st-louis",
+        title: "Chronologie-Auftrag: Antwerpen und die begrenzte Rettung",
+        summary:
+          "Der NDR-Beitrag macht sichtbar, wie die Ankunft in Antwerpen nicht das Ende der Gefahr, sondern nur eine späte und brüchige Verteilung markiert.",
+        task:
+          "Arbeite mit dem NDR-Beitrag, um den Schluss des Dramas präzise historisch einzuordnen. Zeige, wie das Stück zwischen Erleichterung, Verteilung und fortgesetzter Gefährdung balanciert.",
+        questions: [
+          "Was verändert sich mit Antwerpen tatsächlich und was bleibt offen?",
+          "Wie hilft dir die Chronologie, den Schluss nicht als Happy End zu missverstehen?",
+          "Welche Nachgeschichte wirkt im Drama durch den historischen Überblick besonders scharf?"
+        ]
+      },
+      {
+        resourceId: "fritz-buff-reisebericht",
+        title: "Primärquellen-Auftrag: Hoffnung, Angst und Erleichterung von innen",
+        summary:
+          "Fritz Buffs Bericht zeigt den Rückweg und die Nachricht von Antwerpen aus einer Passagierperspektive, die die letzten Szenen des Dramas historisch und emotional verdichtet.",
+        task:
+          "Vergleiche den Schluss des Dramas mit Fritz Buffs Bericht. Arbeite heraus, welche Spannung zwischen Erleichterung, Unsicherheit und späterer Bedrohung beide Texte sichtbar machen.",
+        questions: [
+          "Welche Formulierungen des Reiseberichts helfen dir, das Ende des Dramas genauer zu fassen?",
+          "Wo unterscheidet sich die Binnenperspektive des Berichts von der epischen Anlage des Dramas?",
+          "Wie verändert die Primärquelle deine Bewertung des Schlusses?"
         ]
       }
     ]
@@ -831,6 +1048,19 @@ export const lessonSets = [
           "Welche Begriffe oder Gedanken aus „Im Steinbruch“ kehren im Drama als Haltung des Autors wieder?",
           "Wie verbinden sich im Stück historische Fakten, poetische Form und gegenwärtige Verantwortung?",
           "An welchen Stellen wird deutlich, dass Kehlmann persönliche Involvierung nicht sentimental, sondern analytisch und politisch gestaltet?"
+        ]
+      },
+      {
+        resourceId: "evian-deutschlandfunk",
+        title: "Kontextauftrag: Historische Analyse als Werkhintergrund",
+        summary:
+          "Die Deutschlandfunk-Rezension zu Jochen Thies schärft die Frage, welche historischen Sprach- und Verantwortungsmuster Kehlmann im Drama sichtbar macht.",
+        task:
+          "Nutze die Quelle als historischen Resonanzraum für Kehlmanns Autorhaltung. Zeige, wie das Drama nicht nur Geschichte erzählt, sondern Mechanismen internationaler Verweigerung, Sprachverharmlosung und politischer Untätigkeit aufdeckt.",
+        questions: [
+          "Welche Punkte aus dem DLF-Beitrag kehren im Drama als strukturelle Kritik wieder?",
+          "Wie passt Kehlmanns ästhetische Verdichtung zu einer historischen Analyse, die auf Protokolle, Reden und Sprachformen blickt?",
+          "Wo wird sichtbar, dass persönliche Involvierung bei Kehlmann nicht vom historischen Befund getrennt ist?"
         ]
       }
     ]
@@ -887,16 +1117,136 @@ export const lessonSets = [
         ]
       }
     ]
+  },
+  {
+    id: "lesson-13-evian-grenzen-verantwortung",
+    title: "Lektion 13 · Évian, Grenzen und internationale Verantwortung",
+    summary:
+      "Historische Vertiefung zu Konferenzlogik, Grenzregime und politischer Unterlassung als Unterbau des Dramas.",
+    entryIds: ["havanna-2", "havanna-3", "diplomatie-3", "rueckweg-1", "rueckweg-4"],
+    moduleIds: ["havanna", "diplomatie", "rueckweg"],
+    reviewFocus: "Arbeite historisch präzise heraus, wie das Drama internationale Verweigerung, Grenzpolitik und Zuständigkeitsverschiebung sichtbar macht.",
+    sebPrompt:
+      "Verbinde die ausgewählten Passagen ausdrücklich mit Évian 1938, mit der Sprache des politischen Ausweichens und mit historischen Grenzregimen. Zeige, wie das Drama diese Zusammenhänge verdichtet.",
+    recommendedTheoryIds: ["evian-konferenz", "evian-deutschlandfunk", "susanne-heim-grenzen", "ndr-st-louis", "fritz-buff-reisebericht", "historischer-kontext"],
+    resourceAssignments: [
+      {
+        resourceId: "evian-konferenz",
+        title: "Historisches Dossier: Évian 1938 als Vorentscheidung",
+        summary:
+          "Die Konferenz von Évian wird hier als Vorkonstellation des Dramas gelesen: internationale Beratung, fast keine Aufnahmebereitschaft und institutionalisierte Ohnmacht.",
+        task:
+          "Zeige an den Passagen der Lektion, dass die St. Louis nicht aus einem isolierten Moment des Scheiterns erzählt, sondern aus einer bereits etablierten internationalen Politik der verweigerten Aufnahme.",
+        questions: [
+          "Welche Details aus dem Évian-Dossier helfen dir, Havanna und den Rückweg als historisch vorstrukturiert zu lesen?",
+          "Warum ist die weitgehende Ergebnislosigkeit der Konferenz für das Drama zentral?",
+          "Wie macht das Stück aus dieser historischen Struktur eine konkrete Bühnensituation?"
+        ]
+      },
+      {
+        resourceId: "evian-deutschlandfunk",
+        title: "Audio- und Quellenauftrag: Sprache des Verrats",
+        summary:
+          "Der Deutschlandfunk-Beitrag schärft die sprachkritische Dimension: Antisemitismus, Beschönigung, Nicht-Benennung und Arbeitsmarktargumente prägen die Verweigerung.",
+        task:
+          "Arbeite heraus, wie das Drama dieselbe Sprache des Ausweichens, Entlastens und Nicht-Benennens inszeniert, die der Deutschlandfunk-Beitrag für Évian beschreibt.",
+        questions: [
+          "Welche Formulierungen im Drama entsprechen dem im DLF-Beitrag beschriebenen Muster des Nicht-Offen-Sprechens?",
+          "Wie wird Unterlassung im Stück sprachlich kaschiert oder sachlich verkleidet?",
+          "Warum ist diese sprachliche Ebene für die historische Deutung ebenso wichtig wie die faktische Entscheidung?"
+        ]
+      },
+      {
+        resourceId: "susanne-heim-grenzen",
+        title: "Grenzregime-Auftrag: Transit, Warten, Feststecken",
+        summary:
+          "Mit Susanne Heim wird die Erfahrung vertieft, zwischen Grenzen, Zuständigkeiten und politischen Räumen hin- und hergeschoben zu werden.",
+        task:
+          "Verbinde den Republik-Text mit den ausgewählten Szenen. Zeige, wie das Drama Transit, Warten und Rückweg nicht als Zwischenfall, sondern als Kern moderner Grenzregime darstellt.",
+        questions: [
+          "Wo wird im Drama das Feststecken zwischen politischen Räumen besonders deutlich?",
+          "Wie verändert die Quelle dein Verständnis von Grenze: als Linie, als Verfahren oder als Machtordnung?",
+          "Welche Passage zeigt am klarsten, dass Sichtbarkeit und Aufnahme nicht dasselbe sind?"
+        ]
+      },
+      {
+        resourceId: "ndr-st-louis",
+        title: "Chronologie-Auftrag: Die historische Sequenz der Verweigerung",
+        summary:
+          "Die NDR-Chronologie verbindet die Reisephasen zu einer zusammenhängenden Struktur internationaler Verantwortungslosigkeit.",
+        task:
+          "Arbeite die ausgewählten Passagen entlang der realen Reisebewegung durch. Zeige, wie aus Hamburg, Havanna, Florida und Antwerpen eine historische Dramaturgie der verweigerten Aufnahme entsteht.",
+        questions: [
+          "Welche Stationen des NDR-Artikels werden in der Lektion direkt oder indirekt aufgerufen?",
+          "Wie hilft dir die Chronologie, politische Unterlassung als Prozess und nicht nur als Einzelentscheidung zu lesen?",
+          "Wo wird im Drama aus geografischer Bewegung moralische Sackgasse?"
+        ]
+      },
+      {
+        resourceId: "fritz-buff-reisebericht",
+        title: "Primärquellen-Auftrag: Passagierstimme gegen Abstraktion",
+        summary:
+          "Fritz Buffs Reisebericht gibt der historischen Analyse eine unmittelbare Stimme und verhindert, dass Grenz- und Konferenzpolitik zu abstrakt gelesen wird.",
+        task:
+          "Verbinde die Lektion mit Fritz Buffs Bericht. Zeige, wie politische Entscheidungen in der Quelle als konkrete Stimmungs- und Erfahrungslage an Bord sichtbar werden.",
+        questions: [
+          "Welche Stellen des Berichts helfen dir, politische Entscheidungen als erfahrene Wirklichkeit zu lesen?",
+          "Wo arbeitet das Drama stärker verdichtend oder montierend als die Primärquelle?",
+          "Wie verändert die Passagierperspektive deine historische Deutung der Lektion?"
+        ]
+      }
+    ]
+  },
+  {
+    id: "lesson-14-fritz-buff-primärquelle",
+    title: "Lektion 14 · Fritz Buff, NDR-Chronologie und historische Nahperspektive",
+    summary:
+      "Primärquellen-Einheit mit Reisebericht, Bilddokumenten, Soundfile und historischer Chronologie zur St. Louis.",
+    entryIds: ["abfahrt-1", "havanna-3", "rueckweg-2", "rueckweg-4"],
+    moduleIds: ["abfahrt", "havanna", "rueckweg"],
+    reviewFocus: "Arbeite präzise mit Primärquelle, Chronologie und Dramentext zusammen und zeige, wie das Stück historische Erfahrung zugleich verdichtet und erweitert.",
+    sebPrompt:
+      "Verbinde die ausgewählten Passagen ausdrücklich mit Fritz Buffs Reisebericht, mit den Bildseiten und mit der NDR-Chronologie. Zeige, wie das Drama Binnenperspektive und historische Gesamtbewegung zusammenführt.",
+    recommendedTheoryIds: ["fritz-buff-reisebericht", "ndr-st-louis", "historischer-kontext"],
+    resourceAssignments: [
+      {
+        resourceId: "fritz-buff-reisebericht",
+        title: "Primärquellenauftrag: Reisebericht, Bildseiten und Soundfile",
+        summary:
+          "Der Reisebericht von Fritz Buff führt in die Binnenperspektive der Passagiere und lässt sich direkt mit ausgewählten Szenen des Dramas vergleichen.",
+        task:
+          "Nutze die Bildseiten, den eingebetteten Bericht und das Soundfile, um die Passagen historisch und perspektivisch zu schärfen. Zeige, wie Hoffen, Warten, Gerüchte und Erleichterung im Drama verdichtet werden.",
+        questions: [
+          "Welche Stimmungslagen aus der Quelle kehren im Drama wieder?",
+          "Wo wird die Passagierperspektive im Stück übernommen, wo überformt?",
+          "Welche Bild- oder Tonspur hilft dir am stärksten, die Passage neu zu lesen?"
+        ]
+      },
+      {
+        resourceId: "ndr-st-louis",
+        title: "Chronologieauftrag: Historische Orientierung",
+        summary:
+          "Die NDR-Chronologie ordnet die Binnenperspektive Fritz Buffs in den größeren Bewegungsverlauf der Irrfahrt ein.",
+        task:
+          "Verbinde den Reisebericht mit der Chronologie des NDR-Artikels. Zeige, wie persönliche Erfahrung und politische Ereignisfolge ineinandergreifen.",
+        questions: [
+          "Welche Station der Irrfahrt steht jeweils hinter den ausgewählten Passagen?",
+          "Wie hilft die Chronologie, Buffs Bericht nicht isoliert, sondern als Teil eines größeren Prozesses zu lesen?",
+          "Wo macht das Drama aus historischer Abfolge eine politische Zuspitzung?"
+        ]
+      }
+    ]
   }
 ];
 
 export const starterPrompt = {
   title: "Arbeitsauftrag",
   items: [
-    "Arbeite das Drama entlang von zwölf feineren Lektionen im eingebetteten PDF durch und notiere Beobachtungen immer szenennah.",
+    "Arbeite das Drama entlang von vierzehn eng geführten Lektionen im eingebetteten PDF durch und notiere Beobachtungen immer szenennah.",
     "Sichere zuerst Wortlaut, Rollenrede, Regieanweisung oder Bühnenkonstellation, bevor du deutest.",
     "Nutze pro Passage mindestens eine Linse: historischer Kontext, Dokumentartheater, episches Theater, Dramengang oder Kehlmanns Sekundärtext.",
     "Ziehe in den erweiterten Theorie-Lektionen ausdrücklich die Dropbox-Ressourcen zu Kehlmann, Dokumentartheater und epischem Theater heran.",
+    "Nutze für die historische Vertiefung zusätzlich die Dossiers zu Évian, den Deutschlandfunk-Beitrag samt Audio-Link, den NDR-Überblick, Fritz Buffs Reisebericht mit Bildseiten und Soundfile sowie den Text von Susanne Heim.",
     "Halte im Revisionsfeld fest, welche Deutung du nach erneuter Lektüre schärfen oder gegenlesen willst."
   ]
 };

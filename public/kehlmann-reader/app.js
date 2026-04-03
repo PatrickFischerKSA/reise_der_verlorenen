@@ -912,6 +912,13 @@ function renderTheoryPanel(module, entry) {
       </div>
       <p class="video-note">Der Sekundärtext ist direkt eingebettet und kann zusätzlich extern geöffnet werden.</p>
     `
+    : theory.mediaType === "html"
+      ? `
+      <div class="pdf-frame-wrap">
+        <iframe class="pdf-frame" src="${escapeHtml(theory.embedUrl)}" title="${escapeHtml(theory.title)}"></iframe>
+      </div>
+      <p class="video-note">Das historische Dossier ist direkt eingebettet; externe Quellen- und Audio-Links findest du zusätzlich im Dossier und über die Buttons.</p>
+    `
     : `
       <div class="video-wrap">
         <video class="theory-video" controls preload="metadata">
@@ -930,7 +937,13 @@ function renderTheoryPanel(module, entry) {
           <div class="eyebrow">Theorie-Linse</div>
           <h2>${escapeHtml(theory.title)}</h2>
         </div>
-        <a class="button secondary" href="${escapeHtml(theory.openUrl)}" target="_blank" rel="noreferrer">${theory.mediaType === "pdf" ? "PDF extern öffnen" : "Video extern öffnen"}</a>
+        <div class="chip-row">
+          <a class="button secondary" href="${escapeHtml(theory.openUrl)}" target="_blank" rel="noreferrer">${theory.mediaType === "pdf" ? "PDF extern öffnen" : theory.mediaType === "html" ? "Quelle extern öffnen" : "Video extern öffnen"}</a>
+          ${theory.audioUrl
+            ? `<a class="button secondary" href="${escapeHtml(theory.audioUrl)}" target="_blank" rel="noreferrer">${escapeHtml(theory.audioLabel || "Audio extern öffnen")}</a>`
+            : ""
+          }
+        </div>
       </div>
 
       <div class="theory-summary">
@@ -978,7 +991,7 @@ function renderResourceAssignmentsPanel() {
       <div class="panel-head">
         <div>
           <div class="eyebrow">Ressourcen-Aufträge</div>
-          <h2>Podcast, Sekundärtext und Theorie als Arbeitsstationen</h2>
+          <h2>Podcast, Dossiers, Sekundärtexte und Theorie als Arbeitsstationen</h2>
         </div>
       </div>
 
@@ -994,7 +1007,13 @@ function renderResourceAssignmentsPanel() {
                 <div class="eyebrow">${escapeHtml(resource.sourceTitle)}</div>
                 <h3>${escapeHtml(title)}</h3>
               </div>
-              <a class="button secondary" href="${escapeHtml(resource.openUrl)}" target="_blank" rel="noreferrer">${resource.mediaType === "pdf" ? "PDF extern öffnen" : "Medium extern öffnen"}</a>
+              <div class="chip-row">
+                <a class="button secondary" href="${escapeHtml(resource.openUrl)}" target="_blank" rel="noreferrer">${resource.mediaType === "pdf" ? "PDF extern öffnen" : resource.mediaType === "html" ? "Quelle extern öffnen" : "Medium extern öffnen"}</a>
+                ${resource.audioUrl
+                  ? `<a class="button secondary" href="${escapeHtml(resource.audioUrl)}" target="_blank" rel="noreferrer">${escapeHtml(resource.audioLabel || "Audio extern öffnen")}</a>`
+                  : ""
+                }
+              </div>
             </div>
 
             <p>${escapeHtml(summary)}</p>
@@ -1053,7 +1072,9 @@ function renderResourceAssignmentsPanel() {
             <div class="video-card">
               ${resource.mediaType === "pdf"
                 ? `<div class="pdf-frame-wrap"><iframe class="pdf-frame" src="${escapeHtml(resource.embedUrl)}#page=1&zoom=page-width" title="${escapeHtml(resource.title)}"></iframe></div>`
-                : `<div class="video-wrap"><video class="theory-video" controls preload="metadata"><source src="${escapeHtml(resource.embedUrl)}" type="video/mp4"></video></div>`
+                : resource.mediaType === "html"
+                  ? `<div class="pdf-frame-wrap"><iframe class="pdf-frame" src="${escapeHtml(resource.embedUrl)}" title="${escapeHtml(resource.title)}"></iframe></div>`
+                  : `<div class="video-wrap"><video class="theory-video" controls preload="metadata"><source src="${escapeHtml(resource.embedUrl)}" type="video/mp4"></video></div>`
               }
             </div>
           </section>
@@ -1330,13 +1351,13 @@ function render() {
           <h1>Engmaschiges PDF-Lesetool für das gesamte Drama</h1>
           <p>
             ${mode === "seb"
-              ? "Diese SEB-Fassung arbeitet jetzt mit zwölf feineren Lektionen. Dazu kommen zwei zusätzliche Theorieeinheiten zu Kehlmanns eigener Haltung sowie zu epischem und dokumentarischem Theater, jeweils mit direkter Passageführung im PDF."
-              : "Das Drama ist vollständig integriert. Links steuerst du zwölf engere Lektionssets und Theorie-Linsen, darunter zwei zusätzliche Theorieeinheiten zu Kehlmanns persönlicher Involvierung sowie zu epischem und dokumentarischem Theater. In der Mitte springst du direkt zu den relevanten PDF-Passagen, rechts verbindest du szenische Beobachtung, Theoriebezug, Überarbeitung und Peer Review."}
+              ? "Diese SEB-Fassung arbeitet jetzt mit vierzehn eng geführten Lektionen. Dazu kommen die historische Vertiefung zu Évian, der Deutschlandfunk-Beitrag mit Audio-Link, der NDR-Überblick, Fritz Buffs Reisebericht mit Bildseiten und Soundfile, Susanne Heim sowie die Theorieeinheiten zu Kehlmanns eigener Haltung und zu epischem und dokumentarischem Theater, jeweils mit direkter Passageführung im PDF."
+              : "Das Drama ist vollständig integriert. Links steuerst du vierzehn engere Lektionssets und Theorie-Linsen, darunter die historische Vertiefung zu Évian, den Deutschlandfunk-Beitrag mit Audio-Link, den NDR-Überblick, Fritz Buffs Reisebericht mit Bildseiten und Soundfile, Susanne Heim sowie die Theorieeinheiten zu Kehlmanns persönlicher Involvierung und zu epischem und dokumentarischem Theater. In der Mitte springst du direkt zu den relevanten PDF-Passagen, rechts verbindest du szenische Beobachtung, Theoriebezug, Überarbeitung und Peer Review."}
           </p>
         </div>
         <div class="hero-actions">
           <span class="status-badge">${escapeHtml(modeLabel)}</span>
-          <span class="status-badge">12 Lektionen</span>
+          <span class="status-badge">14 Lektionen</span>
           <span class="status-badge">${escapeHtml(lesson.reviewFocus)}</span>
           ${mode === "open" ? '<a class="button secondary" href="/auth/logout">Abmelden</a>' : ""}
         </div>

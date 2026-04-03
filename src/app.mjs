@@ -329,6 +329,8 @@ function renderTeacherEntryPage({ lessonId, entryId } = {}) {
   const selectedResourceMarkup = selectedResource
     ? selectedResource.resource.mediaType === "pdf"
       ? `<div class="iframe-shell"><iframe src="${selectedResource.resource.embedUrl}#page=1&zoom=page-width" title="${selectedResource.resource.title}"></iframe></div>`
+      : selectedResource.resource.mediaType === "html"
+        ? `<div class="iframe-shell"><iframe src="${selectedResource.resource.embedUrl}" title="${selectedResource.resource.title}"></iframe></div>`
       : `
         <div class="prompt-panel">
           <video controls preload="metadata" style="width:100%; border-radius:16px; background:#000;">
@@ -470,7 +472,7 @@ function renderTeacherEntryPage({ lessonId, entryId } = {}) {
               <section class="resource-panel">
                 <div>
                   <div class="eyebrow">Pflichtressourcen dieser Lektion</div>
-                  <h2>Podcast, Sekundärtext und Theorie integriert</h2>
+                  <h2>Podcast, Dossiers, Sekundärtexte und Theorie integriert</h2>
                 </div>
                 <div class="teacher-entry-resource-list">
                   ${lessonResources.map(({ resource, assignment }) => `
@@ -485,7 +487,11 @@ function renderTeacherEntryPage({ lessonId, entryId } = {}) {
                         </ul>
                       ` : ""}
                       <div class="row">
-                        <a class="button secondary" href="${resource.openUrl}" target="_blank" rel="noreferrer">${resource.mediaType === "pdf" ? "PDF extern öffnen" : "Video extern öffnen"}</a>
+                        <a class="button secondary" href="${resource.openUrl}" target="_blank" rel="noreferrer">${resource.mediaType === "pdf" ? "PDF extern öffnen" : resource.mediaType === "html" ? "Quelle extern öffnen" : "Video extern öffnen"}</a>
+                        ${resource.audioUrl
+                          ? `<a class="button secondary" href="${resource.audioUrl}" target="_blank" rel="noreferrer">${resource.audioLabel || "Audio extern öffnen"}</a>`
+                          : ""
+                        }
                       </div>
                     </article>
                   `).join("")}
