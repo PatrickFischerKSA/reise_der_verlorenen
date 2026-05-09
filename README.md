@@ -9,6 +9,7 @@ Eigenständige Webanwendung für die schulische Arbeit mit Daniel Kehlmanns *Die
 Die App bündelt:
 
 - offenen Reader mit Klassen-Code, Namen und Unterrichtspasswort
+- offene Demo-Version ohne Login oder Passwort
 - SEB-Reader für Prüfungs- und Testsituationen
 - integriertes PDF des Werks
 - engmaschige Lektionssets über den Textverlauf
@@ -22,9 +23,11 @@ Wichtig: Dieses Repo ist bewusst **kein Mehrwerk-Backbone** mehr. Es enthält nu
 ## Startpunkte
 
 - `/` Übersicht der Kehlmann-Einheit
+- `/demo` offene Demo-Version ohne Login
 - `/open` offene Version
 - `/seb` SEB-Version
 - `/teacher` Lehrer*innen-Dashboard
+- `/teacher-entry` Lehrer*inneneingang
 
 ## Architektur
 
@@ -97,6 +100,15 @@ Empfohlene Variablen in Render:
 ## Klassen-Codes und Anmeldung
 
 Die minutiöse Lehrer*innen-Anleitung für Code-Erstellung, Regeneration und Schüler-Registrierung liegt in [docs/classroom-codes.md](/Users/patrickfischer/Documents/New project/reise_der_verlorenen/docs/classroom-codes.md).
+
+## Demo-Version
+
+Für Lehrpersonen, die die Einheit zuerst frei sichten oder Kolleg*innen zeigen wollen, gibt es eine eigene Demo-Version ohne Login:
+
+- `/demo`
+- `/demo/lesson/:lessonId`
+
+Die kompakte Handreichung dazu liegt in [docs/demo-version.md](/Users/patrickfischer/Documents/zeiten_grammatikwerkstatt/reise_der_verlorenen/docs/demo-version.md).
 
 ## Inhalte der Einheit
 

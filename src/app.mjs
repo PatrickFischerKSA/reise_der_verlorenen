@@ -407,6 +407,10 @@ function renderTeacherEntryPage({ lessonId, entryId } = {}) {
           <h2>Passwort, Klassen-Code und SEB sauber starten</h2>
           <div class="meta-grid">
             <div class="meta-card">
+              <strong>Demo-Version</strong>
+              <p>${config.demoUrl}</p>
+            </div>
+            <div class="meta-card">
               <strong>Offene Version</strong>
               <p>${config.openUrl}</p>
             </div>
@@ -424,6 +428,10 @@ function renderTeacherEntryPage({ lessonId, entryId } = {}) {
             </div>
           </div>
           <div class="teacher-entry-resource-list">
+            <article class="resource-nav-card">
+              <strong>0. Demo-Version für Vorschau</strong>
+              <span>Nutze <em>${config.demoUrl}</em>, wenn du die Einheit ohne Login, Passwort und Klassen-Code frei sichten oder im Kollegium zeigen willst.</span>
+            </article>
             <article class="resource-nav-card">
               <strong>1. Klasse anlegen</strong>
               <span>Im Lehrer*innen-Dashboard eine neue Klasse anlegen. Dabei wird sofort ein eigener Klassen-Code erzeugt.</span>
@@ -448,6 +456,12 @@ function renderTeacherEntryPage({ lessonId, entryId } = {}) {
               <strong>6. Endkontrolle</strong>
               <span>Immer selbst testen: Klasse angelegt, Code stimmt, Passwort notiert, offene Version funktioniert, SEB zeigt die richtige Lektion.</span>
             </article>
+          </div>
+          <div class="notice">
+            <strong>Kurzform für Lehrpersonen:</strong>
+            <br>Für eine offene Vorschau nimm <em>${config.demoUrl}</em>.
+            <br>Für regulären Unterricht nimm <em>${config.openUrl}</em> mit Unterrichtspasswort und Klassen-Code.
+            <br>Für kontrollierte Prüfungssettings nimm <em>${config.sebUrl}</em> im Safe Exam Browser.
           </div>
         </section>
 

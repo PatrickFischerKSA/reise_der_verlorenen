@@ -139,6 +139,10 @@ function renderTeacherGuide(classroom) {
       </div>
       <div class="protocol-banner">
         <div class="protocol-chip">
+          <span>Demo-Version</span>
+          <strong>${escapeHtml(config.demoUrl || "/demo")}</strong>
+        </div>
+        <div class="protocol-chip">
           <span>Offene Version</span>
           <strong>${escapeHtml(config.openUrl || "/open")}</strong>
         </div>
@@ -155,7 +159,17 @@ function renderTeacherGuide(classroom) {
           <strong>${escapeHtml(code)}</strong>
         </div>
       </div>
+      <div class="notice">
+        <strong>Schneller Überblick:</strong>
+        Nutze <em>${escapeHtml(config.demoUrl || "/demo")}</em>, wenn du die Einheit frei sichten oder Kolleg*innen zeigen willst.
+        Für echten Unterricht nimm <em>${escapeHtml(config.openUrl || "/open")}</em> mit Klassen-Code und Unterrichtspasswort.
+        Für Prüfungs- oder Testsituationen nimm <em>${escapeHtml(config.sebUrl || "/seb")}</em> im Safe Exam Browser.
+      </div>
       <div class="instruction-grid">
+        <div class="instruction-card">
+          <strong>0. Demo-Version für Vorschau</strong>
+          <p>Wenn du die Einheit nur sichten, im Team besprechen oder auf einem Beamer kurz zeigen willst, öffne direkt <em>${escapeHtml(config.demoUrl || "/demo")}</em>. Dort gibt es keinen Login, keinen Klassen-Code und kein Passwort.</p>
+        </div>
         <div class="instruction-card">
           <strong>1. Kurs / Klasse anlegen</strong>
           <p>Trage unter <em>Neue Klasse anlegen</em> einen eindeutigen Namen ein, zum Beispiel <em>Klasse 10B Deutsch</em>, und klicke auf <em>Klasse erstellen</em>. Damit wird sofort ein eigener Klassen-Code für diese Lerngruppe erzeugt.</p>
