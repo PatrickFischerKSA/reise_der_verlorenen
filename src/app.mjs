@@ -7,6 +7,7 @@ import { hasOpenAccess, isSafeExamBrowserRequest, parseCookies } from "./service
 import { getEntriesForLesson, getLessonSetById, getLessonSetsWithCounts } from "./services/kehlmann-reader-progress.mjs";
 import {
   buildReaderBootstrap,
+  createClassroom,
   createOrResumeStudent,
   readReaderStore,
   updateReaderStore
@@ -25,11 +26,15 @@ const CLASS_COOKIE = "kehlmann_reader_class";
 const TEACHER_COOKIE = "kehlmann_teacher_access";
 const SEB_CONFIG_KEY_HASH = process.env.SEB_CONFIG_KEY_HASH || process.env.KEHLMANN_SEB_CONFIG_KEY_HASH || "";
 const READER_PDF_SOURCE = "/reader/assets/die-reise-der-verlorenen.pdf";
+const DEMO_CLASS_CODE = "KEHL-DEMO";
+const DEMO_CLASS_NAME = "Offene Demo";
+const DEMO_STUDENT_NAME = "Demo-Zugang";
 
 function teacherRuntimeConfig() {
   return {
     openPassword: OPEN_PASSWORD,
     openUrl: "/open",
+    demoUrl: "/demo",
     sebUrl: "/seb",
     teacherUrl: "/teacher",
     teacherEntryUrl: "/teacher-entry",
@@ -291,6 +296,7 @@ function renderLandingPage() {
           </p>
           <div class="row">
             <a class="button" href="/open">Offene Version</a>
+            <a class="button secondary" href="/demo">Demo-Version</a>
             <a class="button secondary" href="/seb">SEB-Version</a>
             <a class="button secondary" href="/teacher-entry">Lehrer*inneneingang</a>
             <a class="button secondary" href="/teacher">Lehrer*innen-Dashboard</a>
@@ -694,7 +700,7 @@ function renderTeacherPage() {
 }
 
 function renderReaderPage(mode, lessonId) {
-  const modeLabel = mode === "seb" ? "Safe Exam Browser" : "Offene Version";
+  const modeLabel = mode === "seb" ? "Safe Exam Browser" : mode === "demo" ? "Demo-Version" : "Offene Version";
   return `
     <!doctype html>
     <html lang="de">
@@ -753,6 +759,34 @@ function lessonRedirect(mode, lessonId) {
     return `/${mode}`;
   }
   return `/${mode}/lesson/${lessonId}`;
+}
+
+async function ensureDemoAccess(lessonId) {
+  return updateReaderStore(async (store) => {
+    let classroom = store.classes.find((entry) => entry.code === DEMO_CLASS_CODE || entry.name === DEMO_CLASS_NAME) || null;
+
+    if (!classroom) {
+      classroom = createClassroom(store, { name: DEMO_CLASS_NAME });
+      classroom.code = DEMO_CLASS_CODE;
+      classroom.allowOpen = true;
+      classroom.allowSeb = false;
+      classroom.peerReviewEnabled = false;
+      classroom.requiredPeerReviews = 0;
+      classroom.peerReviewInstructions = "";
+    }
+
+    classroom.lessonIds = getLessonSetsWithCounts().map((lesson) => lesson.id);
+    classroom.activeSebLessonId = lessonId && classroom.lessonIds.includes(lessonId)
+      ? lessonId
+      : classroom.lessonIds[0];
+
+    return createOrResumeStudent(store, {
+      classCode: classroom.code,
+      displayName: DEMO_STUDENT_NAME,
+      mode: "demo",
+      lessonId
+    });
+  });
 }
 
 async function hasValidStudentSession(request) {
@@ -886,6 +920,12 @@ export function createApp() {
     response.send(renderReaderPage("open"));
   });
 
+  app.get("/demo", async (_request, response) => {
+    const access = await ensureDemoAccess();
+    setStudentCookies(response, access.classroom, access.student, false);
+    response.send(renderReaderPage("demo"));
+  });
+
   app.get("/open/lesson/:lessonId", async (request, response) => {
     if (!hasOpenAccess(request, OPEN_COOKIE) || !hasStudentSession(request)) {
       response.send(renderStudentAccessPage({ mode: "open", lessonId: request.params.lessonId }));
@@ -903,6 +943,12 @@ export function createApp() {
     }
 
     response.send(renderReaderPage("open", request.params.lessonId));
+  });
+
+  app.get("/demo/lesson/:lessonId", async (request, response) => {
+    const access = await ensureDemoAccess(request.params.lessonId);
+    setStudentCookies(response, access.classroom, access.student, false);
+    response.send(renderReaderPage("demo", request.params.lessonId));
   });
 
   app.get("/seb", async (request, response) => {
